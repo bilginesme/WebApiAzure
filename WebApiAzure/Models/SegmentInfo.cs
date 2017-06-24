@@ -24,11 +24,6 @@ namespace WebApiAzure
             blockID = 0;
             status = DTC.StatusEnum.Running;
         }
-        public SegmentInfo(int id, string title)
-        {
-            this.id = id;
-            this.title = title;
-        } 
         #endregion
 
         #region Public Methods

@@ -380,13 +380,15 @@ namespace WebApiAzure
 
             foreach (DataRow dr in dt.Rows)
             {
-                SegmentInfo block = new SegmentInfo(Convert.ToInt32(dr["SegmentID"]), Convert.ToString(dr["Title"]));
+                SegmentInfo segment = new SegmentInfo();
 
-                block.Details = Convert.ToString(dr["Details"]);
-                block.BlockID = Convert.ToInt32(dr["BlockID"]);
-                block.Status = (DTC.StatusEnum)Convert.ToInt16(dr["StatusID"]);
+                segment.ID = Convert.ToInt32(dr["SegmentID"]);
+                segment.Title = Convert.ToString(dr["Title"]);
+                segment.Details = Convert.ToString(dr["Details"]);
+                segment.BlockID = Convert.ToInt32(dr["BlockID"]);
+                segment.Status = (DTC.StatusEnum)Convert.ToInt16(dr["StatusID"]);
 
-                data.Add(block);
+                data.Add(segment);
             }
             return data;
         }
