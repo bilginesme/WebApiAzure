@@ -379,18 +379,21 @@ namespace WebApiAzure
             DataTable dt = RunExecuteReaderMSSQL(strSQL);
 
             foreach (DataRow dr in dt.Rows)
-            {
-                SegmentInfo segment = new SegmentInfo();
+                data.Add(GetSegment(dr));
 
-                segment.ID = Convert.ToInt32(dr["SegmentID"]);
-                segment.Title = Convert.ToString(dr["Title"]);
-                segment.Details = Convert.ToString(dr["Details"]);
-                segment.BlockID = Convert.ToInt32(dr["BlockID"]);
-                segment.Status = (DTC.StatusEnum)Convert.ToInt16(dr["StatusID"]);
-
-                data.Add(segment);
-            }
             return data;
+        }
+        public static SegmentInfo GetSegment(DataRow dr)
+        {
+            SegmentInfo segment = new SegmentInfo();
+
+            segment.ID = Convert.ToInt32(dr["SegmentID"]);
+            segment.Title = Convert.ToString(dr["Title"]);
+            segment.Details = Convert.ToString(dr["Details"]);
+            segment.BlockID = Convert.ToInt32(dr["BlockID"]);
+            segment.Status = (DTC.StatusEnum)Convert.ToInt16(dr["StatusID"]);
+
+            return segment;
         }
     }
 }
