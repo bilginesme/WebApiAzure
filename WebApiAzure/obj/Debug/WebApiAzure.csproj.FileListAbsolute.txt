@@ -106,7 +106,6 @@ C:\Users\Bilgin\Desktop\Angular\WebApiAzure\WebApiAzure\bin\roslyn\System.Reflec
 C:\Users\Bilgin\Desktop\Angular\WebApiAzure\WebApiAzure\bin\roslyn\vbc.exe
 C:\Users\Bilgin\Desktop\Angular\WebApiAzure\WebApiAzure\bin\roslyn\VBCSCompiler.exe
 C:\Users\Bilgin\Desktop\Angular\WebApiAzure\WebApiAzure\bin\roslyn\VBCSCompiler.exe.config
-C:\Users\Bilgin\Desktop\Angular\WebApiAzure\WebApiAzure\bin\WebApiAzure.dll.config
 C:\Users\Bilgin\Desktop\Angular\WebApiAzure\WebApiAzure\bin\WebApiAzure.dll
 C:\Users\Bilgin\Desktop\Angular\WebApiAzure\WebApiAzure\bin\WebApiAzure.pdb
 C:\Users\Bilgin\Desktop\Angular\WebApiAzure\WebApiAzure\bin\Antlr3.Runtime.dll
@@ -188,3 +187,4 @@ C:\Users\Bilgin\Desktop\Angular\WebApiAzure\WebApiAzure\bin\System.Web.Http.Owin
 C:\Users\Bilgin\Desktop\Angular\WebApiAzure\WebApiAzure\obj\Debug\WebApiAzure.dll
 C:\Users\Bilgin\Desktop\Angular\WebApiAzure\WebApiAzure\obj\Debug\WebApiAzure.pdb
 C:\Users\Bilgin\Desktop\Angular\WebApiAzure\WebApiAzure\obj\Debug\WebApiAzure.csprojResolveAssemblyReference.cache
+C:\Users\Bilgin\Desktop\Angular\WebApiAzure\WebApiAzure\bin\WebApiAzure.dll.config

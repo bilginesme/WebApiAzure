@@ -10,7 +10,7 @@ namespace WebApiAzure.Controllers
 {
     public class SegmentsController : ApiController
     {
-        [Route("api/Blocks/{projectID}/{isOnlyRunning}")]
+        [Route("api/Segments/{projectID}/{isOnlyRunning}")]
         public IEnumerable<SegmentInfo> Get(int blockID, bool isOnlyRunning)
         {
             List<SegmentInfo> segments = DB.GetSegments(blockID);
