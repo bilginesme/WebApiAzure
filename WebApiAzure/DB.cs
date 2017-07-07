@@ -63,21 +63,70 @@ namespace WebApiAzure
             DataTable dt = RunExecuteReaderMSSQL(strSQL);
 
             foreach (DataRow dr in dt.Rows)
-            {
-                BlockInfo block = new BlockInfo(Convert.ToInt32(dr["BlockID"]), Convert.ToString(dr["Title"]));
+                data.Add(GetBlock(dr));
 
-                block.Details = Convert.ToString(dr["Details"]);
-                block.ProjectID = Convert.ToInt32(dr["ProjectID"]);
-                block.StartDate = Convert.ToDateTime(dr["StartDate"]);
-                block.EndDate = Convert.ToDateTime(dr["EndDate"]);
-                block.DueDate = Convert.ToDateTime(dr["DueDate"]);
-                block.HasDue = Convert.ToBoolean(dr["HasDue"]);
-                block.Status = (DTC.StatusEnum)Convert.ToInt16(dr["StatusID"]);
-
-                data.Add(block);
-            }
             return data;
         }
+        private static BlockInfo GetBlock(DataRow dr)
+        {
+            BlockInfo block = new BlockInfo(Convert.ToInt32(dr["BlockID"]), Convert.ToString(dr["Title"]));
+
+            block.Details = Convert.ToString(dr["Details"]);
+            block.ProjectID = Convert.ToInt32(dr["ProjectID"]);
+            block.StartDate = Convert.ToDateTime(dr["StartDate"]);
+            block.EndDate = Convert.ToDateTime(dr["EndDate"]);
+            block.DueDate = Convert.ToDateTime(dr["DueDate"]);
+            block.HasDue = Convert.ToBoolean(dr["HasDue"]);
+            block.Status = (DTC.StatusEnum)Convert.ToInt16(dr["StatusID"]);
+
+            return block;
+        }
+
+        public static List<BlockEnhancedInfo> GetBlocksEnhanced(int projectID)
+        {
+            List<BlockInfo> blocks = GetBlocks(projectID);
+            List<BlockEnhancedInfo> data = new List<BlockEnhancedInfo>();
+
+
+            string strSQL = "SELECT Blocks.BlockID, COUNT(Segments.SegmentID) AS TotalSegments, Segments.StatusID AS SegmentStatusID" +
+                " FROM Blocks " +
+                " INNER JOIN Segments ON Blocks.BlockID = Segments.BlockID " +
+                " WHERE Blocks.ProjectID = " + projectID +
+                " GROUP BY Blocks.BlockID, Segments.StatusID" +
+                " ORDER BY Blocks.BlockID";
+
+            DataTable dt = RunExecuteReaderMSSQL(strSQL);
+
+            foreach(BlockInfo block in blocks)
+            {
+                data.Add((BlockEnhancedInfo)block);
+
+                foreach (DataRow dr in dt.Rows)
+                {
+                    long blockID = Convert.ToInt32(dr["BlockID"]);
+                    if(blockID == block.ID)
+                    {
+                        BlockEnhancedInfo blockEnhanced = data.Find(i=>i.ID == block.ID);
+                        if (blockEnhanced == null)
+                        {
+                            blockEnhanced = new BlockEnhancedInfo();
+                            data.Add(blockEnhanced);
+                        }
+
+                        int segmentStatusID = Convert.ToInt16(dr["SegmentStatusID"]);
+                        int totalSegments = Convert.ToInt16(dr["TotalSegments"]);
+
+                        blockEnhanced.NumSegmentsTotal += totalSegments;
+                        if (segmentStatusID != (int)DTC.StatusEnum.Running)
+                            blockEnhanced.NumSegmentsCompleted += totalSegments;
+                    }
+                }
+            }
+
+            return data;
+        }
+      
+
         public static List<ProjectInfo> GetActionableProjects()
         {
             List<ProjectInfo> data = new List<Models.ProjectInfo>();
