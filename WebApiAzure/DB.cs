@@ -87,19 +87,28 @@ namespace WebApiAzure
             List<BlockInfo> blocks = GetBlocks(projectID);
             List<BlockEnhancedInfo> data = new List<BlockEnhancedInfo>();
 
-
             string strSQL = "SELECT Blocks.BlockID, COUNT(Segments.SegmentID) AS TotalSegments, Segments.StatusID AS SegmentStatusID" +
                 " FROM Blocks " +
                 " INNER JOIN Segments ON Blocks.BlockID = Segments.BlockID " +
                 " WHERE Blocks.ProjectID = " + projectID +
-                " GROUP BY Blocks.BlockID, Segments.StatusID" +
-                " ORDER BY Blocks.BlockID";
+                " GROUP BY Blocks.StatusID, Blocks.Title, Blocks.BlockID, Segments.StatusID" +
+                " ORDER BY Blocks.StatusID DESC, Blocks.Title";
 
             DataTable dt = RunExecuteReaderMSSQL(strSQL);
 
             foreach(BlockInfo block in blocks)
             {
-                data.Add((BlockEnhancedInfo)block);
+                BlockEnhancedInfo be = new BlockEnhancedInfo();
+                be.Details = block.Details;
+                be.DueDate = block.DueDate;
+                be.EndDate = block.EndDate;
+                be.HasDue = block.HasDue;
+                be.ID = block.ID;
+                be.ProjectID = block.ProjectID;
+                be.StartDate = block.StartDate;
+                be.Status = block.Status;
+                be.Title = block.Title;
+                data.Add(be);
 
                 foreach (DataRow dr in dt.Rows)
                 {
@@ -123,7 +132,12 @@ namespace WebApiAzure
                 }
             }
 
-            return data;
+            List<BlockEnhancedInfo> beList = new List<BlockEnhancedInfo>();
+            beList.AddRange(data.FindAll(i=>i.Status == DTC.StatusEnum.Running));
+            beList.AddRange(data.FindAll(i => i.Status == DTC.StatusEnum.Success));
+            beList.AddRange(data.FindAll(i => i.Status == DTC.StatusEnum.Fail));
+
+            return beList;
         }
       
 
