@@ -13,6 +13,7 @@ namespace WebApiAzure
         string details;
         int blockID;
         DTC.StatusEnum status;
+        DateTime startDate;
         #endregion
 
         #region Constructors
@@ -23,6 +24,7 @@ namespace WebApiAzure
             details = string.Empty;
             blockID = 0;
             status = DTC.StatusEnum.Running;
+            startDate = DateTime.Today;
         }
         #endregion
 
@@ -35,6 +37,8 @@ namespace WebApiAzure
         public string Details { get { return details; } set { details = value; }}
         public int BlockID { get { return blockID; } set { blockID = value; }}
         public DTC.StatusEnum Status { get { return status; } set { status = value; }}
+        public DateTime StartDate { get { return startDate; } set { startDate = value; } }
+        public int AgeDays { get { return (int)DateTime.Today.Subtract(startDate).TotalDays; } }
         #endregion
 
         object ICloneable.Clone()

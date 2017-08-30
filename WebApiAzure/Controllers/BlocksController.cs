@@ -19,9 +19,9 @@ namespace WebApiAzure.Controllers
         }
 
         // GET: api/Blocks/5
-        public string Get(int id)
+        public BlockInfo Get(long id)
         {
-            return "value";
+            return DB.GetBlock(id);
         }
 
         // POST: api/Blocks

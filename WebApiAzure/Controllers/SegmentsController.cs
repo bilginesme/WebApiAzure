@@ -11,22 +11,47 @@ namespace WebApiAzure.Controllers
     public class SegmentsController : ApiController
     {
         [Route("api/Segments/{blockID}/{isOnlyRunning}")]
-        public IEnumerable<SegmentInfo> Get(int blockID, bool isOnlyRunning)
+        public IEnumerable<SegmentInfo> Get(long blockID, string isOnlyRunning)
         {
             List<SegmentInfo> segments = DB.GetSegments(blockID);
 
             return segments;
         }
 
-        // GET: api/Blocks/5
-        public string Get(int id)
+        [Route("api/Segments/{id}/{purpose}/{strTitle}")]
+        public string Get(long id, string purpose, string strTitle)
         {
-            return "value";
+            if (purpose == "add")
+                return DB.AddSegment(id, strTitle);
+            else
+                return "NA";
         }
 
-        // POST: api/Blocks
-        public void Post([FromBody]string value)
+        [Route("api/Segments/{id}/{purpose}/{strTitle}/{strStatusID}")]
+        public string Get(long id, string purpose, string strTitle, string strStatusID)
         {
+            if(DTC.IsNumeric(strStatusID))
+            {
+                DTC.StatusEnum status = (DTC.StatusEnum)Convert.ToInt16(strStatusID);
+                return DB.UpdateSegment(id, strTitle, status);
+            }
+            else
+            {
+                return "error";
+            }
+        }
+
+
+        [HttpGet]
+        [Route("api/Segments/{segmentID}")]
+        public SegmentInfo Get(long segmentID)
+        {
+            return DB.GetSegment(segmentID);
+        }
+
+        public void Post([FromBody]int segmentID)
+        {
+            //DB.SaveSegment(segmentID, title);
         }
 
         // PUT: api/Blocks/5
@@ -34,9 +59,12 @@ namespace WebApiAzure.Controllers
         {
         }
 
-        // DELETE: api/Blocks/5
-        public void Delete(int id)
+        [HttpDelete]
+        [Route("api/Segments/{segmentID}")]
+        public string Delete(int segmentID)
         {
+            DB.DeleteSegment(segmentID);
+            return "ok";
         }
     }
 }

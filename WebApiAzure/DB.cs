@@ -39,6 +39,19 @@ namespace WebApiAzure
 
             return dt;
         }
+        private static void RunNonQuery(string strSQL)
+        {
+            SqlConnection conn = new SqlConnection(GetConnStr());
+            conn.Open();
+
+            SqlCommand cmd = new SqlCommand();
+            cmd.Connection = conn;
+            cmd.CommandType = System.Data.CommandType.Text;
+            cmd.CommandText = strSQL;
+            cmd.ExecuteNonQuery();
+
+            conn.Close();
+        }
 
         public static List<ProjectInfo> GetProjects()
         {
@@ -66,6 +79,18 @@ namespace WebApiAzure
                 data.Add(GetBlock(dr));
 
             return data;
+        }
+        public static BlockInfo GetBlock(long blockID)
+        {
+            string strSQL = "SELECT * " +
+            " FROM Blocks " +
+            " WHERE BlockID = " + blockID;
+
+            DataTable dt = RunExecuteReaderMSSQL(strSQL);
+            if (dt.Rows.Count == 1)
+                return GetBlock(dt.Rows[0]);
+            else
+                return null;
         }
         private static BlockInfo GetBlock(DataRow dr)
         {
@@ -131,6 +156,8 @@ namespace WebApiAzure
                     }
                 }
             }
+
+            data = data.OrderBy(i => i.Title).ToList();
 
             List<BlockEnhancedInfo> beList = new List<BlockEnhancedInfo>();
             beList.AddRange(data.FindAll(i=>i.Status == DTC.StatusEnum.Running));
@@ -431,9 +458,28 @@ namespace WebApiAzure
             return result;
         }
 
+        public static List<SegmentInfo> GetOldestSegments(long projectID)
+        {
+            List<SegmentInfo> segments = new List<SegmentInfo>();
+
+            string strSQL = "SELECT Segments.* " +
+                " FROM Blocks " +
+                " INNER JOIN Segments ON Blocks.BlockID = Segments.BlockID " +
+                " WHERE Blocks.ProjectID = " + projectID +
+                " AND Segments.StatusID = " + (int)DTC.StatusEnum.Running +
+                " ORDER BY Blocks.StartDate";
+
+            DataTable dt = RunExecuteReaderMSSQL(strSQL);
+
+            foreach (DataRow dr in dt.Rows)
+                segments.Add(GetSegment(dr));
+
+            return segments;
+        }
         public static List<SegmentInfo> GetSegments(long blockID)
         {
-            List<SegmentInfo> data = new List<SegmentInfo>();
+            List<SegmentInfo> segmentsRaw = new List<SegmentInfo>();
+            List<SegmentInfo> segmentsOrdered = new List<SegmentInfo>();
 
             string strSQL = "SELECT * " +
                 " FROM Segments " +
@@ -442,9 +488,26 @@ namespace WebApiAzure
             DataTable dt = RunExecuteReaderMSSQL(strSQL);
 
             foreach (DataRow dr in dt.Rows)
-                data.Add(GetSegment(dr));
+                segmentsRaw.Add(GetSegment(dr));
 
-            return data;
+            segmentsRaw = segmentsRaw.OrderBy(i => i.Title).ToList();
+            segmentsOrdered.AddRange(segmentsRaw.FindAll(i => i.Status == DTC.StatusEnum.Running));
+            segmentsOrdered.AddRange(segmentsRaw.FindAll(i => i.Status == DTC.StatusEnum.Success));
+            segmentsOrdered.AddRange(segmentsRaw.FindAll(i => i.Status == DTC.StatusEnum.Fail));
+
+            return segmentsOrdered;
+        }
+        public static SegmentInfo GetSegment(long segmentID)
+        {
+            string strSQL = "SELECT * " +
+            " FROM Segments " +
+            " WHERE SegmentID = " + segmentID;
+
+            DataTable dt = RunExecuteReaderMSSQL(strSQL);
+            if (dt.Rows.Count == 1)
+                return GetSegment(dt.Rows[0]);
+            else
+                return null;
         }
         public static SegmentInfo GetSegment(DataRow dr)
         {
@@ -455,8 +518,41 @@ namespace WebApiAzure
             segment.Details = Convert.ToString(dr["Details"]);
             segment.BlockID = Convert.ToInt32(dr["BlockID"]);
             segment.Status = (DTC.StatusEnum)Convert.ToInt16(dr["StatusID"]);
+            segment.StartDate = Convert.ToDateTime(dr["StartDate"]);
 
             return segment;
+        }
+
+        public static string UpdateSegment(long segmentID, string title, DTC.StatusEnum status)
+        {
+            string strSQL = "UPDATE Segments SET " +
+                " Title = '" + DTC.InputText(title, 255) + "'," +
+                " StatusID = " + (int)status +
+                " WHERE SegmentID = " + segmentID;
+            RunNonQuery(strSQL);
+
+            return "OK";
+        }
+        public static string AddSegment(long blockID, string title)
+        {
+            string strSQL = "INSERT Segments (BlockID, Title, StartDate, EndDate, DueDate, HasDue, Size, StatusID) VALUES (" +
+                blockID + "," +
+                "'" + DTC.InputText(title, 255) + "'," +
+                DTC.ObtainGoodDT(DateTime.Today, true) + "," +
+                DTC.ObtainGoodDT(DateTime.Today, true) + "," +
+                DTC.ObtainGoodDT(DateTime.Today, true) + "," +
+                0 + "," +
+                2 + "," +
+                (int)DTC.StatusEnum.Running + 
+                ")";
+            RunNonQuery(strSQL);
+
+            return "OK";
+        }
+        public static void DeleteSegment(long segmentID)
+        {
+            string strSQL = "DELETE Segments WHERE SegmentID = " + segmentID;
+            RunNonQuery(strSQL);
         }
     }
 }
