@@ -18,27 +18,21 @@ namespace WebApiAzure.Controllers
             return segments;
         }
 
-        [Route("api/Segments/{id}/{purpose}/{strTitle}")]
-        public string Get(long id, string purpose, string strTitle)
+        [Route("api/Segments/{blockID}/{strTitle}/{strDetails}")]
+        public string Get(long blockID, string strTitle, string strDetails)
         {
-            if (purpose == "add")
-                return DB.AddSegment(id, strTitle);
-            else
-                return "NA";
+            return DB.AddSegment(blockID, strTitle, strDetails);
         }
 
-        [Route("api/Segments/{id}/{purpose}/{strTitle}/{strStatusID}")]
-        public string Get(long id, string purpose, string strTitle, string strStatusID)
+        [Route("api/Segments/{segmentID}/{strTitle}/{statusID}/{strDetails}")]
+        public string Get(long segmentID, string strTitle, int statusID, string strDetails)
         {
-            if(DTC.IsNumeric(strStatusID))
-            {
-                DTC.StatusEnum status = (DTC.StatusEnum)Convert.ToInt16(strStatusID);
-                return DB.UpdateSegment(id, strTitle, status);
-            }
-            else
-            {
-                return "error";
-            }
+            SegmentInfo segment = DB.GetSegment(segmentID);
+
+            segment.Status = (DTC.StatusEnum)statusID;
+            segment.Title = strTitle;
+            segment.Details = strDetails;
+            return DB.UpdateSegment(segment);
         }
 
 

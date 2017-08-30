@@ -523,21 +523,24 @@ namespace WebApiAzure
             return segment;
         }
 
-        public static string UpdateSegment(long segmentID, string title, DTC.StatusEnum status)
+      
+        public static string UpdateSegment(SegmentInfo segment)
         {
             string strSQL = "UPDATE Segments SET " +
-                " Title = '" + DTC.InputText(title, 255) + "'," +
-                " StatusID = " + (int)status +
-                " WHERE SegmentID = " + segmentID;
+                " Title = '" + DTC.InputText(segment.Title, 255) + "'," +
+                " Details = '" + DTC.InputText(segment.Details, 255) + "'," +
+                " StatusID = " + (int)segment.Status +
+                " WHERE SegmentID = " + segment.ID;
             RunNonQuery(strSQL);
 
             return "OK";
         }
-        public static string AddSegment(long blockID, string title)
+        public static string AddSegment(long blockID, string title, string details)
         {
-            string strSQL = "INSERT Segments (BlockID, Title, StartDate, EndDate, DueDate, HasDue, Size, StatusID) VALUES (" +
+            string strSQL = "INSERT Segments (BlockID, Title, Details, StartDate, EndDate, DueDate, HasDue, Size, StatusID) VALUES (" +
                 blockID + "," +
                 "'" + DTC.InputText(title, 255) + "'," +
+                "'" + DTC.InputText(details, 255) + "'," +      
                 DTC.ObtainGoodDT(DateTime.Today, true) + "," +
                 DTC.ObtainGoodDT(DateTime.Today, true) + "," +
                 DTC.ObtainGoodDT(DateTime.Today, true) + "," +
