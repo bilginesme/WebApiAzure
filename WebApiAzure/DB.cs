@@ -467,7 +467,7 @@ namespace WebApiAzure
                 " INNER JOIN Segments ON Blocks.BlockID = Segments.BlockID " +
                 " WHERE Blocks.ProjectID = " + projectID +
                 " AND Segments.StatusID = " + (int)DTC.StatusEnum.Running +
-                " ORDER BY Blocks.StartDate";
+                " ORDER BY Segments.StartDate";
 
             DataTable dt = RunExecuteReaderMSSQL(strSQL);
 
