@@ -10,6 +10,7 @@ namespace WebApiAzure
         #region Private Members
         int numSegmentsTotal;
         int numSegmentsCompleted;
+        int totalMinutes;
         #endregion
 
         #region Constructors
@@ -17,8 +18,8 @@ namespace WebApiAzure
         {
             numSegmentsTotal = 0;
             numSegmentsCompleted = 0;
+            totalMinutes = 0;
         }
-     
         #endregion
 
         #region Public Methods
@@ -28,6 +29,7 @@ namespace WebApiAzure
         #region Public Properties
         public int NumSegmentsTotal { get { return numSegmentsTotal; } set { numSegmentsTotal = value; }}
         public int NumSegmentsCompleted { get { return numSegmentsCompleted; } set { numSegmentsCompleted = value; } }
+        public int TotalMinutes { get { return totalMinutes; } set { totalMinutes = value; } }
         #endregion
 
     }
