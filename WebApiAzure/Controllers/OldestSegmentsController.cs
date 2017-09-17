@@ -14,7 +14,7 @@ namespace WebApiAzure.Controllers
         {
             return DB.GetOldestSegments(projectID);
         }
- 
+
         // POST: api/OldestSegments
         public void Post([FromBody]string value)
         {

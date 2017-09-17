@@ -542,8 +542,7 @@ namespace WebApiAzure
 
             return segment;
         }
-
-      
+         
         public static string UpdateSegment(SegmentInfo segment)
         {
             string strSQL = "UPDATE Segments SET " +
@@ -576,6 +575,26 @@ namespace WebApiAzure
         {
             string strSQL = "DELETE Segments WHERE SegmentID = " + segmentID;
             RunNonQuery(strSQL);
+        }
+
+        public static Dictionary<string, int> GetRealMinutesPerWeek(int projectID, int nTop)
+        {
+            Dictionary<string, int> data = new Dictionary<string, int>();
+
+            string strSQL = "SELECT TOP (" + nTop + ") SUM(RealTime) AS TotalPerWeek, " +
+                " CONVERT(varchar, { fn YEAR(TaskDate) }) + CONVERT(varchar, { fn WEEK(TaskDate) }) AS TheWeek " +
+                " FROM Tasks " +
+                " WHERE ProjectID = " + projectID +
+                " GROUP BY CONVERT(varchar, { fn YEAR(TaskDate) }) +CONVERT(varchar, { fn WEEK(TaskDate) }) " +
+                " ORDER BY TheWeek DESC";
+            DataTable dt = RunExecuteReaderMSSQL(strSQL);
+
+            foreach (DataRow dr in dt.Rows)
+            {
+                data.Add(Convert.ToString(dr["TheWeek"]), Convert.ToInt16(dr["TotalPerWeek"]));
+            }
+
+            return data;
         }
     }
 }
