@@ -61,133 +61,33 @@ namespace WebApiAzure
             DataTable dt = RunExecuteReaderMSSQL(strSQL);
 
             foreach (DataRow dr in dt.Rows)
-            {
-                ProjectInfo project = new ProjectInfo(Convert.ToInt32(dr["ProjectID"]), Convert.ToString(dr["ProjectCode"]), Convert.ToString(dr["ProjectName"]));
-                data.Add(project);
-            }
-            return data;
-        }
-        public static List<BlockInfo> GetBlocks(int projectID)
-        {
-            List<BlockInfo> data = new List<BlockInfo>();
-
-            string strSQL = "SELECT * FROM Blocks " +
-                " WHERE ProjectID = " + projectID;
-            DataTable dt = RunExecuteReaderMSSQL(strSQL);
-
-            foreach (DataRow dr in dt.Rows)
-                data.Add(GetBlock(dr));
+                data.Add(GetProject(dr));
 
             return data;
         }
-        public static BlockInfo GetBlock(long blockID)
+        public static ProjectInfo GetProject(int projectID)
         {
             string strSQL = "SELECT * " +
-            " FROM Blocks " +
-            " WHERE BlockID = " + blockID;
+            " FROM Projects " +
+            " WHERE ProjectID = " + projectID;
 
             DataTable dt = RunExecuteReaderMSSQL(strSQL);
             if (dt.Rows.Count == 1)
-                return GetBlock(dt.Rows[0]);
+                return GetProject(dt.Rows[0]);
             else
                 return null;
         }
-        private static BlockInfo GetBlock(DataRow dr)
+        private static ProjectInfo GetProject(DataRow dr)
         {
-            BlockInfo block = new BlockInfo(Convert.ToInt32(dr["BlockID"]), Convert.ToString(dr["Title"]));
+            ProjectInfo project = new ProjectInfo();
 
-            block.Details = Convert.ToString(dr["Details"]);
-            block.ProjectID = Convert.ToInt32(dr["ProjectID"]);
-            block.StartDate = Convert.ToDateTime(dr["StartDate"]);
-            block.EndDate = Convert.ToDateTime(dr["EndDate"]);
-            block.DueDate = Convert.ToDateTime(dr["DueDate"]);
-            block.HasDue = Convert.ToBoolean(dr["HasDue"]);
-            block.Status = (DTC.StatusEnum)Convert.ToInt16(dr["StatusID"]);
+            project.ID = Convert.ToInt32(dr["ProjectID"]);
+            project.Name = Convert.ToString(dr["ProjectName"]);
+            project.Code = Convert.ToString(dr["ProjectCode"]);
+            project.StartDate = Convert.ToDateTime(dr["StartDate"]);
 
-            return block;
+            return project;
         }
-
-        public static List<BlockEnhancedInfo> GetBlocksEnhanced(int projectID)
-        {
-            List<BlockInfo> blocks = GetBlocks(projectID);
-            List<BlockEnhancedInfo> data = new List<BlockEnhancedInfo>();
-            Dictionary<long, int> totalMinutesPerBlock = GetTotalMinutesPerBlock(projectID);
-
-            string strSQL = "SELECT Blocks.BlockID, COUNT(Segments.SegmentID) AS TotalSegments, Segments.StatusID AS SegmentStatusID " +
-                " FROM Blocks " +
-                " INNER JOIN Segments ON Blocks.BlockID = Segments.BlockID " +
-                " WHERE Blocks.ProjectID = " + projectID +
-                " GROUP BY Blocks.StatusID, Blocks.Title, Blocks.BlockID, Segments.StatusID " +
-                " ORDER BY Blocks.StatusID DESC, Blocks.Title";
-            DataTable dt = RunExecuteReaderMSSQL(strSQL);
-
-            foreach(BlockInfo block in blocks)
-            {
-                BlockEnhancedInfo be = new BlockEnhancedInfo();
-                be.Details = block.Details;
-                be.DueDate = block.DueDate;
-                be.EndDate = block.EndDate;
-                be.HasDue = block.HasDue;
-                be.ID = block.ID;
-                be.ProjectID = block.ProjectID;
-                be.StartDate = block.StartDate;
-                be.Status = block.Status;
-                be.Title = block.Title;
-
-                if (totalMinutesPerBlock.ContainsKey(be.ID))
-                    be.TotalMinutes = totalMinutesPerBlock[be.ID];
-
-                data.Add(be);
-
-                foreach (DataRow dr in dt.Rows)
-                {
-                    long blockID = Convert.ToInt32(dr["BlockID"]);
-                    if(blockID == block.ID)
-                    {
-                        BlockEnhancedInfo blockEnhanced = data.Find(i=>i.ID == block.ID);
-                        if (blockEnhanced == null)
-                        {
-                            blockEnhanced = new BlockEnhancedInfo();
-                            data.Add(blockEnhanced);
-                        }
-
-                        int segmentStatusID = Convert.ToInt16(dr["SegmentStatusID"]);
-                        int totalSegments = Convert.ToInt16(dr["TotalSegments"]);
-                     
-                        blockEnhanced.NumSegmentsTotal += totalSegments;
-                        if (segmentStatusID != (int)DTC.StatusEnum.Running)
-                            blockEnhanced.NumSegmentsCompleted += totalSegments;
-                    }
-                }
-            }
-
-            data = data.OrderBy(i => i.Title).ToList();
-
-            List<BlockEnhancedInfo> beList = new List<BlockEnhancedInfo>();
-            beList.AddRange(data.FindAll(i=>i.Status == DTC.StatusEnum.Running));
-            beList.AddRange(data.FindAll(i => i.Status == DTC.StatusEnum.Success));
-            beList.AddRange(data.FindAll(i => i.Status == DTC.StatusEnum.Fail));
-
-            return beList;
-        }
-      
-        public static Dictionary<long, int> GetTotalMinutesPerBlock(int projectID)
-        {
-            Dictionary<long, int> data = new Dictionary<long, int>();
-
-            string strSQL= "SELECT Blocks.BlockID, SUM(Tasks.RealTime) AS TotalMinutes " +
-            " FROM Blocks " +
-            " INNER JOIN Tasks ON Blocks.BlockID = Tasks.BlockID " +
-            " WHERE Blocks.ProjectID = " + projectID +
-            " GROUP BY Blocks.BlockID";
-            DataTable dt = RunExecuteReaderMSSQL(strSQL);
-
-            foreach (DataRow dr in dt.Rows)
-                data.Add(Convert.ToInt32(dr["BlockID"]), Convert.ToInt16(dr["TotalMinutes"]));
-
-            return data;
-        }
-
         public static List<ProjectInfo> GetActionableProjects()
         {
             List<ProjectInfo> data = new List<Models.ProjectInfo>();
@@ -196,10 +96,8 @@ namespace WebApiAzure
             DataTable dt = RunExecuteReaderMSSQL(strSQL);
 
             foreach (DataRow dr in dt.Rows)
-            {
-                ProjectInfo project = new ProjectInfo(Convert.ToInt32(dr["ProjectID"]), Convert.ToString(dr["ProjectCode"]), Convert.ToString(dr["ProjectName"]));
-                data.Add(project);
-            }
+                data.Add(GetProject(dr));
+
             return data;
         }
         public static List<ProjectSnapshotInfo> GetProjectsSnapshot()
@@ -249,7 +147,7 @@ namespace WebApiAzure
             weeks.Add(DTC.GetPreviousWeek(weeks[1]));
             weeks.Add(DTC.GetPreviousWeek(weeks[2]));
 
-            for (int w=0;w<weeks.Count;w++)
+            for (int w = 0; w < weeks.Count; w++)
             {
                 strSQL = "SELECT Projects.ProjectID, SUM(Tasks.RealTime) AS RealTimeTotal" +
                 " FROM Projects " +
@@ -277,10 +175,10 @@ namespace WebApiAzure
             }
 
             List<long> projectIDs = new List<long>();
-            foreach(ProjectInfo project in GetActionableProjects())
+            foreach (ProjectInfo project in GetActionableProjects())
             {
                 projectIDs.Add(project.ID);
-                if(!data.Exists(i=>i.ProjectID == project.ID))
+                if (!data.Exists(i => i.ProjectID == project.ID))
                 {
                     ProjectSnapshotInfo ps = DB.GetProjectSnapshot(project.ID);
                     ps.RealTime = 0;
@@ -291,8 +189,8 @@ namespace WebApiAzure
             Dictionary<long, int> projectPerformances = GetProjectPerformances(projectIDs);
             foreach (int projectID in projectPerformances.Keys)
             {
-                ProjectSnapshotInfo ps = data.Find(i=>i.ProjectID == projectID);
-                if(ps != null)
+                ProjectSnapshotInfo ps = data.Find(i => i.ProjectID == projectID);
+                if (ps != null)
                     ps.PercentCompleted = projectPerformances[projectID];
             }
 
@@ -359,7 +257,7 @@ namespace WebApiAzure
                 foreach (DataRow dr in dt.Rows)
                 {
                     float realTime = 0;
-                    if(DTC.IsNumeric(dr["RealTimeTotal"]))
+                    if (DTC.IsNumeric(dr["RealTimeTotal"]))
                         realTime = Convert.ToSingle(dr["RealTimeTotal"]);
 
                     if (w == 0) projectSnapshot.W0 = realTime;
@@ -373,11 +271,10 @@ namespace WebApiAzure
 
             return projectSnapshot;
         }
-
         public static int GetProjectPerformance(int projectID)
         {
             int result = 0;
-            string strSQL= "SELECT SUM(Segments.Size) AS TotalSize, Segments.StatusID " +
+            string strSQL = "SELECT SUM(Segments.Size) AS TotalSize, Segments.StatusID " +
                 " FROM Segments " +
                 " INNER JOIN Blocks ON Segments.BlockID = Blocks.BlockID " +
                 " WHERE Blocks.ProjectID = " + projectID +
@@ -391,8 +288,8 @@ namespace WebApiAzure
             {
                 sizeTotal += Convert.ToSingle(dr["TotalSize"]);
                 DTC.StatusEnum status = (DTC.StatusEnum)Convert.ToInt16(dr["StatusID"]);
-                if(status!= DTC.StatusEnum.Running)
-                    sizeCompleted+= Convert.ToSingle(dr["TotalSize"]);
+                if (status != DTC.StatusEnum.Running)
+                    sizeCompleted += Convert.ToSingle(dr["TotalSize"]);
             }
 
             if (sizeTotal > 0)
@@ -423,7 +320,7 @@ namespace WebApiAzure
 
                 foreach (DataRow dr in dt.Rows)
                 {
-                    if(Convert.ToInt32(dr["ProjectID"]) == projectID)
+                    if (Convert.ToInt32(dr["ProjectID"]) == projectID)
                     {
                         sizeTotal += Convert.ToSingle(dr["TotalSize"]);
                         DTC.StatusEnum status = (DTC.StatusEnum)Convert.ToInt16(dr["StatusID"]);
@@ -443,7 +340,7 @@ namespace WebApiAzure
         public static Dictionary<long, float> GetProjectEternalTotalTimes(List<long> projectIDs)
         {
             Dictionary<long, float> data = new Dictionary<long, float>();
-            
+
             string strSQL = "SELECT SUM(Tasks.RealTime) AS EternalTotalTime, Tasks.ProjectID " +
                 " FROM Tasks " +
                 " INNER JOIN Projects ON Tasks.ProjectID = Projects.ProjectID " +
@@ -476,6 +373,125 @@ namespace WebApiAzure
                 result = data[projectID];
 
             return result;
+        }
+
+        public static List<BlockInfo> GetBlocks(int projectID)
+        {
+            List<BlockInfo> data = new List<BlockInfo>();
+
+            string strSQL = "SELECT * FROM Blocks " +
+                " WHERE ProjectID = " + projectID;
+            DataTable dt = RunExecuteReaderMSSQL(strSQL);
+
+            foreach (DataRow dr in dt.Rows)
+                data.Add(GetBlock(dr));
+
+            return data;
+        }
+        public static BlockInfo GetBlock(long blockID)
+        {
+            string strSQL = "SELECT * " +
+            " FROM Blocks " +
+            " WHERE BlockID = " + blockID;
+
+            DataTable dt = RunExecuteReaderMSSQL(strSQL);
+            if (dt.Rows.Count == 1)
+                return GetBlock(dt.Rows[0]);
+            else
+                return null;
+        }
+        private static BlockInfo GetBlock(DataRow dr)
+        {
+            BlockInfo block = new BlockInfo(Convert.ToInt32(dr["BlockID"]), Convert.ToString(dr["Title"]));
+
+            block.Details = Convert.ToString(dr["Details"]);
+            block.ProjectID = Convert.ToInt32(dr["ProjectID"]);
+            block.StartDate = Convert.ToDateTime(dr["StartDate"]);
+            block.EndDate = Convert.ToDateTime(dr["EndDate"]);
+            block.DueDate = Convert.ToDateTime(dr["DueDate"]);
+            block.HasDue = Convert.ToBoolean(dr["HasDue"]);
+            block.Status = (DTC.StatusEnum)Convert.ToInt16(dr["StatusID"]);
+
+            return block;
+        }
+        public static List<BlockEnhancedInfo> GetBlocksEnhanced(int projectID)
+        {
+            List<BlockInfo> blocks = GetBlocks(projectID);
+            List<BlockEnhancedInfo> data = new List<BlockEnhancedInfo>();
+            Dictionary<long, int> totalMinutesPerBlock = GetTotalMinutesPerBlock(projectID);
+
+            string strSQL = "SELECT Blocks.BlockID, COUNT(Segments.SegmentID) AS TotalSegments, Segments.StatusID AS SegmentStatusID " +
+                " FROM Blocks " +
+                " INNER JOIN Segments ON Blocks.BlockID = Segments.BlockID " +
+                " WHERE Blocks.ProjectID = " + projectID +
+                " GROUP BY Blocks.StatusID, Blocks.Title, Blocks.BlockID, Segments.StatusID " +
+                " ORDER BY Blocks.StatusID DESC, Blocks.Title";
+            DataTable dt = RunExecuteReaderMSSQL(strSQL);
+
+            foreach(BlockInfo block in blocks)
+            {
+                BlockEnhancedInfo be = new BlockEnhancedInfo();
+                be.Details = block.Details;
+                be.DueDate = block.DueDate;
+                be.EndDate = block.EndDate;
+                be.HasDue = block.HasDue;
+                be.ID = block.ID;
+                be.ProjectID = block.ProjectID;
+                be.StartDate = block.StartDate;
+                be.Status = block.Status;
+                be.Title = block.Title;
+
+                if (totalMinutesPerBlock.ContainsKey(be.ID))
+                    be.TotalMinutes = totalMinutesPerBlock[be.ID];
+
+                data.Add(be);
+
+                foreach (DataRow dr in dt.Rows)
+                {
+                    long blockID = Convert.ToInt32(dr["BlockID"]);
+                    if(blockID == block.ID)
+                    {
+                        BlockEnhancedInfo blockEnhanced = data.Find(i=>i.ID == block.ID);
+                        if (blockEnhanced == null)
+                        {
+                            blockEnhanced = new BlockEnhancedInfo();
+                            data.Add(blockEnhanced);
+                        }
+
+                        int segmentStatusID = Convert.ToInt16(dr["SegmentStatusID"]);
+                        int totalSegments = Convert.ToInt16(dr["TotalSegments"]);
+                     
+                        blockEnhanced.NumSegmentsTotal += totalSegments;
+                        if (segmentStatusID != (int)DTC.StatusEnum.Running)
+                            blockEnhanced.NumSegmentsCompleted += totalSegments;
+                    }
+                }
+            }
+
+            data = data.OrderBy(i => i.Title).ToList();
+
+            List<BlockEnhancedInfo> beList = new List<BlockEnhancedInfo>();
+            beList.AddRange(data.FindAll(i=>i.Status == DTC.StatusEnum.Running));
+            beList.AddRange(data.FindAll(i => i.Status == DTC.StatusEnum.Success));
+            beList.AddRange(data.FindAll(i => i.Status == DTC.StatusEnum.Fail));
+
+            return beList;
+        }
+        public static Dictionary<long, int> GetTotalMinutesPerBlock(int projectID)
+        {
+            Dictionary<long, int> data = new Dictionary<long, int>();
+
+            string strSQL= "SELECT Blocks.BlockID, SUM(Tasks.RealTime) AS TotalMinutes " +
+            " FROM Blocks " +
+            " INNER JOIN Tasks ON Blocks.BlockID = Tasks.BlockID " +
+            " WHERE Blocks.ProjectID = " + projectID +
+            " GROUP BY Blocks.BlockID";
+            DataTable dt = RunExecuteReaderMSSQL(strSQL);
+
+            foreach (DataRow dr in dt.Rows)
+                data.Add(Convert.ToInt32(dr["BlockID"]), Convert.ToInt16(dr["TotalMinutes"]));
+
+            return data;
         }
 
         public static List<SegmentInfo> GetOldestSegments(long projectID)
@@ -542,25 +558,26 @@ namespace WebApiAzure
 
             return segment;
         }
-         
         public static string UpdateSegment(SegmentInfo segment)
         {
             string strSQL = "UPDATE Segments SET " +
                 " Title = '" + DTC.InputText(segment.Title, 255) + "'," +
+                " BlockID = " + segment.BlockID + "," +
                 " Details = '" + DTC.InputText(segment.Details, 255) + "'," +
+                " StartDate = " + DTC.ObtainGoodDT(segment.StartDate, true) + "," +
                 " StatusID = " + (int)segment.Status +
                 " WHERE SegmentID = " + segment.ID;
             RunNonQuery(strSQL);
 
             return "OK";
         }
-        public static string AddSegment(long blockID, string title, string details)
+        public static string AddSegment(SegmentInfo segment)
         {
             string strSQL = "INSERT Segments (BlockID, Title, Details, StartDate, EndDate, DueDate, HasDue, Size, StatusID) VALUES (" +
-                blockID + "," +
-                "'" + DTC.InputText(title, 255) + "'," +
-                "'" + DTC.InputText(details, 255) + "'," +      
-                DTC.ObtainGoodDT(DateTime.Today, true) + "," +
+                segment.BlockID + "," +
+                "'" + DTC.InputText(segment.Title, 255) + "'," +
+                "'" + DTC.InputText(segment.Details, 255) + "'," +      
+                DTC.ObtainGoodDT(segment.StartDate, true) + "," +
                 DTC.ObtainGoodDT(DateTime.Today, true) + "," +
                 DTC.ObtainGoodDT(DateTime.Today, true) + "," +
                 0 + "," +

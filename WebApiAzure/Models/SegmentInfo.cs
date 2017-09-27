@@ -11,7 +11,7 @@ namespace WebApiAzure
         int id;        
         string title;
         string details;
-        int blockID;
+        long blockID;
         DTC.StatusEnum status;
         DateTime startDate;
         #endregion
@@ -35,7 +35,7 @@ namespace WebApiAzure
         public int ID { get { return id; } set { id = value; }}
         public string Title { get { return title; } set { title = value; }}
         public string Details { get { return details; } set { details = value; }}
-        public int BlockID { get { return blockID; } set { blockID = value; }}
+        public long BlockID { get { return blockID; } set { blockID = value; }}
         public DTC.StatusEnum Status { get { return status; } set { status = value; }}
         public DateTime StartDate { get { return startDate; } set { startDate = value; } }
         public int AgeDays { get { return (int)DateTime.Today.Subtract(startDate).TotalDays; } }

@@ -10,12 +10,10 @@ namespace WebApiAzure.Models
         public int ID { get; set; }
         public string Code { get; set; }
         public string Name { get; set; }
+        public DateTime StartDate { get; set; }
 
-        public ProjectInfo(int ID, string Code, string Name)
+        public ProjectInfo()
         {
-            this.ID = ID;
-            this.Name = Name;
-            this.Code = Code;
         }
     }
 }

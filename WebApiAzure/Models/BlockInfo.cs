@@ -8,7 +8,7 @@ namespace WebApiAzure
     public class BlockInfo : ICloneable
     {
         #region Private Members
-        int id;        
+        long id;        
         string title;
         string details;
         int projectID;
@@ -55,7 +55,7 @@ namespace WebApiAzure
         #endregion
 
         #region Public Properties
-        public int ID { get { return id; } set { id = value; }}
+        public long ID { get { return id; } set { id = value; }}
         public string Title { get { return title; } set { title = value; }}
         public string Details { get { return details; } set { details = value; }}
         public int ProjectID { get { return projectID; } set { projectID = value; }}

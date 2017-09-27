@@ -98,17 +98,17 @@ namespace WebApiAzure
             return text;
         }
 
-        public static string Format2(double num)
+        public static string Format2(decimal num)
         {
             return String.Format("{0:##,#0.00}", num);
         }
         public static string Format2(int num)
         {
-            return Format2((double)num);
+            return Format2((decimal)num);
         }
         public static string Format2(float num)
         {
-            return Format2((double)num);
+            return Format2((decimal)num);
         }
 
         public static string GetFullDigits(int value, int numDigits)

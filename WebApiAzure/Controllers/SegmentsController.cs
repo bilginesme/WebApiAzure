@@ -18,39 +18,25 @@ namespace WebApiAzure.Controllers
             return segments;
         }
 
-        [Route("api/Segments/{blockID}/{strTitle}/{strDetails}")]
-        public string Get(long blockID, string strTitle, string strDetails)
-        {
-            return DB.AddSegment(blockID, strTitle, strDetails);
-        }
-
-        [Route("api/Segments/{segmentID}/{strTitle}/{statusID}/{strDetails}")]
-        public string Get(long segmentID, string strTitle, int statusID, string strDetails)
-        {
-            SegmentInfo segment = DB.GetSegment(segmentID);
-
-            segment.Status = (DTC.StatusEnum)statusID;
-            segment.Title = strTitle;
-            segment.Details = strDetails;
-            return DB.UpdateSegment(segment);
-        }
-
-
         [HttpGet]
         [Route("api/Segments/{segmentID}")]
         public SegmentInfo Get(long segmentID)
         {
             return DB.GetSegment(segmentID);
         }
-
-        public void Post([FromBody]int segmentID)
+         
+        [HttpPost]
+        [Route("api/Segments/")]
+        public void Post([FromBody] SegmentInfo segment)
         {
-            //DB.SaveSegment(segmentID, title);
+            DB.AddSegment(segment);
         }
 
-        // PUT: api/Blocks/5
-        public void Put(int id, [FromBody]string value)
+        [HttpPut]
+        [Route("api/Segments/{segmentID}")]
+        public void Put(int segmentID, [FromBody] SegmentInfo segment)
         {
+            DB.UpdateSegment(segment);
         }
 
         [HttpDelete]
