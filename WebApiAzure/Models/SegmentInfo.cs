@@ -28,7 +28,7 @@ namespace WebApiAzure
         }
         #endregion
 
-        #region Public Methods
+        #region Public Methods        
         #endregion
 
         #region Public Properties
@@ -39,6 +39,31 @@ namespace WebApiAzure
         public DTC.StatusEnum Status { get { return status; } set { status = value; }}
         public DateTime StartDate { get { return startDate; } set { startDate = value; } }
         public int AgeDays { get { return (int)DateTime.Today.Subtract(startDate).TotalDays; } }
+        public string AgeDaysString
+        {
+            get {
+                string strAge = string.Empty;
+
+                if (AgeDays >= 365)
+                {
+                    strAge = DTC.Format1((decimal)AgeDays / 365M) + " years";
+                }
+                else if (AgeDays > 30)
+                {
+                    strAge = DTC.Format1((decimal)AgeDays / 30) + " months";
+                }
+                else if (AgeDays > 7)
+                {
+                    strAge = DTC.Format1((decimal)AgeDays / 7) + " weeks";
+                }
+                else if (AgeDays > 1)
+                {
+                    strAge = AgeDays + " days";
+                }
+
+                return strAge;
+            }
+        }
         #endregion
 
         object ICloneable.Clone()

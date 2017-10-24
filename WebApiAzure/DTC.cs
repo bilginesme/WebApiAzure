@@ -8,10 +8,8 @@ namespace WebApiAzure
 {
     public class DTC
     {
-        public enum StatusEnum : int
-        {
-            Running = 1, Success = 2, Fail = 3
-        }
+        public enum StatusEnum : int { Running = 1, Success = 2, Fail = 3 }
+        public enum SizeEnum : int { Zero = 0, Small = 1, Medium = 2, Large = 3, Huge = 5, Gigantic = 9, Astronomical = 17 }
 
         public static bool IsNumeric(object input)
         {
@@ -111,6 +109,19 @@ namespace WebApiAzure
             return Format2((decimal)num);
         }
 
+        public static string Format1(decimal num)
+        {
+            return String.Format("{0:##,#0.0}", num);
+        }
+        public static string Format1(int num)
+        {
+            return Format1((decimal)num);
+        }
+        public static string Format1(float num)
+        {
+            return Format1((decimal)num);
+
+        }
         public static string GetFullDigits(int value, int numDigits)
         {
             string strValue = value.ToString();

@@ -88,6 +88,15 @@ namespace WebApiAzure
             else
                 return new MonthInfo(endDate);
         }
+        public string GetYearWeekKey()
+        {
+            string strWeek = weekNO.ToString();
+            if (strWeek.Length == 1)
+                strWeek = "0" + strWeek;
+            string key = startDate.Year.ToString() + strWeek;
+
+            return key;
+        }
         #endregion
 
         #region Public Properties

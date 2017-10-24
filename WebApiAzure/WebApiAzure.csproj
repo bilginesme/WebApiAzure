@@ -254,6 +254,7 @@
     <Compile Include="Controllers\SegmentsController.cs" />
     <Compile Include="Controllers\BlocksController.cs" />
     <Compile Include="Controllers\HomeController.cs" />
+    <Compile Include="Controllers\SmallSegmentsController.cs" />
     <Compile Include="Controllers\ValuesController.cs" />
     <Compile Include="DB.cs" />
     <Compile Include="DTC.cs" />
@@ -264,6 +265,7 @@
     <Compile Include="Models\AccountViewModels.cs" />
     <Compile Include="Models\BlockEnhancedInfo.cs" />
     <Compile Include="Models\RealHoursPerWeekInfo.cs" />
+    <Compile Include="Models\SegmentEnhancedInfo.cs" />
     <Compile Include="Models\SegmentInfo.cs" />
     <Compile Include="Models\BlockInfo.cs" />
     <Compile Include="Models\IdentityModels.cs" />

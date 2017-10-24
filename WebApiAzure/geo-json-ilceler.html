@@ -1,0 +1,77 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>Data Layer: Simple</title>
+    <meta name="viewport" content="initial-scale=1.0">
+    <meta charset="utf-8">
+    <style>
+         /* Always set the map height explicitly to define the size of the div
+        * element that contains the map. */
+         #map {
+             height: 100%;
+         }
+         /* Optional: Makes the sample page fill the window. */
+         html, body {
+             height: 100%;
+             margin: 0;
+             padding: 0;
+         }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <script>
+
+      var map;
+        function initMap() {
+            map = new google.maps.Map(document.getElementById('map'), {
+                zoom: 6,
+                center: { lat: 39.6860976, lng: 35.5076264 },
+            });
+
+            var data_layer25 = new google.maps.Data({ map: map });
+            data_layer25.loadGeoJson('http://localhost:3028/ilceler.json');
+            data_layer25.setStyle({ fillColor: '#808000', strokeWeight: 1, strokeOpacity: 0.2 });
+
+            data_layer25.setMap(map);
+
+            data_layer25.addListener('click', function (e) {                
+                console.log("İL : " + e.feature.getProperty('NAME_1') + " İlçe : " + e.feature.getProperty('NAME_2'));
+                data_layer25.overrideStyle(e.feature, {
+                    fillColor: '#ff0000',
+                    fillOpacity: 0.5,
+                    strokeColor: '#2a2a2a',
+                    strokeWeight: 2,
+                    zIndex: 2
+                });
+            });
+
+            //data_layer25.addListener('mouseout', function (e) { data_layer25.revertStyle(); });
+
+            var uluru = { lat: 39.6860976, lng: 35.5076264 };
+            var marker = new google.maps.Marker({ position: uluru, map: map, title: "Hello World!" });
+
+            setTimeout(function () { calculate(data_layer25); }, 500);
+        }
+        
+        function calculate(data_layer25) {
+            data_layer25.forEach(function (feature) {
+                console.log(feature.getProperty('NAME_1'));
+                var opacity = Math.random();
+
+                data_layer25.overrideStyle(feature, {
+                    fillColor: '#00ff00',
+                    fillOpacity: opacity,
+                    strokeColor: '#2a2a2a',
+                    strokeWeight: 2,
+                    zIndex: 2
+                });
+
+            });
+        }
+    
+    </script>
+
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB39DcF9NQSTN0IfPWiTIX2ytUHRSdy-w8&callback=initMap"></script>
+</body>
+</html>

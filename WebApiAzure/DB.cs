@@ -558,6 +558,22 @@ namespace WebApiAzure
 
             return segment;
         }
+        public static SegmentEnhancedInfo GetSegmentEnhanced(DataRow dr)
+        {
+            SegmentInfo segmentBase = GetSegment(dr);
+            SegmentEnhancedInfo sE = new SegmentEnhancedInfo();
+
+            sE.ID = segmentBase.ID;
+            sE.Title = segmentBase.Title;
+            sE.Details = segmentBase.Details;
+            sE.BlockID = segmentBase.BlockID;
+            sE.Status = segmentBase.Status;
+            sE.StartDate = segmentBase.StartDate;
+            sE.ProjectName = Convert.ToString(dr["ProjectName"]);
+            sE.BlockTitle = Convert.ToString(dr["BlockTitle"]);
+
+            return sE;
+        }
         public static string UpdateSegment(SegmentInfo segment)
         {
             string strSQL = "UPDATE Segments SET " +
@@ -593,8 +609,28 @@ namespace WebApiAzure
             string strSQL = "DELETE Segments WHERE SegmentID = " + segmentID;
             RunNonQuery(strSQL);
         }
+        public static List<SegmentEnhancedInfo> GetSmallSegments()
+        {
+            List<SegmentEnhancedInfo> data = new List<SegmentEnhancedInfo>();
 
-        public static Dictionary<string, int> GetRealMinutesPerWeek(int projectID, int nTop)
+            string strSQL = "SELECT Segments.*, Blocks.Title AS BlockTitle, Projects.ProjectName " +
+                " FROM Segments " +
+                " INNER JOIN Blocks ON Segments.BlockID = Blocks.BlockID " +
+                " INNER JOIN Projects ON Blocks.ProjectID = Projects.ProjectID " +
+                " WHERE Segments.StatusID = " + (int)DTC.StatusEnum.Running +
+                " AND Segments.Size = " + (int)DTC.SizeEnum.Small +
+                " AND Projects.IsActionable = 1" +
+                " AND Projects.StatusID = 1" +
+                " ORDER BY Segments.StartDate DESC";
+
+            DataTable dt = RunExecuteReaderMSSQL(strSQL);
+            foreach (DataRow dr in dt.Rows)
+                data.Add(GetSegmentEnhanced(dr));
+
+            return data;
+        }
+
+        public static Dictionary<string, int> GetRealMinutesPerWeekOLD(int projectID, int nTop)
         {
             Dictionary<string, int> data = new Dictionary<string, int>();
 
@@ -613,5 +649,59 @@ namespace WebApiAzure
 
             return data;
         }
+
+        public static Dictionary<string, int> GetRealMinutesPerWeek(int projectID, int nTop)
+        {
+            Dictionary<string, int> data = new Dictionary<string, int>();
+            List<WeekInfo> weeks = GetWeeks(projectID, nTop);
+
+            string strSQL = "SELECT * FROM Tasks " +
+                " WHERE ProjectID = " + projectID +
+                " ORDER BY TaskDate DESC";
+            DataTable dt = RunExecuteReaderMSSQL(strSQL);
+
+            foreach(WeekInfo week in weeks)
+            {
+                if (!data.ContainsKey(week.GetYearWeekKey()))
+                    data.Add(week.GetYearWeekKey(), 0);
+            }
+
+            foreach (DataRow dr in dt.Rows)
+            {
+                DateTime theDate = Convert.ToDateTime(dr["TaskDate"]);
+                WeekInfo week = weeks.Find(i=>i.StartDate <= theDate && i.EndDate >= theDate);
+                if(week != null)
+                {
+                    string key = week.GetYearWeekKey();
+                    if (data.ContainsKey(key))
+                    {
+                        data[key] += Convert.ToInt16(dr["RealTime"]);
+                    }
+                }
+            }
+
+            return data;
+        }
+        public static List<WeekInfo> GetWeeks(int projectID, int nTop)
+        {
+            List<WeekInfo> data = new List<WeekInfo>();
+            ProjectInfo project = DB.GetProject(projectID);
+
+            bool isOK = false;
+            WeekInfo week = new WeekInfo(DateTime.Today);
+            int count = 0;
+            while (!isOK)
+            {
+                data.Add(week);
+
+                week = DTC.GetPreviousWeek(week);
+                count++;
+                if (count >= nTop || week.StartDate < project.StartDate)
+                    isOK = true;
+            }
+
+            return data;
+        }
+
     }
 }
