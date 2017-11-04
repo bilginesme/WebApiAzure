@@ -26,6 +26,7 @@
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
     <ApplicationInsightsResourceId>/subscriptions/f591f09e-5855-4fb8-ad24-34495c41002f/resourcegroups/Default-ApplicationInsights-CentralUS/providers/microsoft.insights/components/WebApiAzure</ApplicationInsightsResourceId>
+    <Use64BitIISExpress />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -264,6 +265,28 @@
     <Compile Include="Models\AccountBindingModels.cs" />
     <Compile Include="Models\AccountViewModels.cs" />
     <Compile Include="Models\BlockEnhancedInfo.cs" />
+    <Compile Include="Models\BlockPerfInfo.cs" />
+    <Compile Include="Models\BookInfo.cs" />
+    <Compile Include="Models\BookProcessInfo.cs" />
+    <Compile Include="Models\ChapterInfo.cs" />
+    <Compile Include="Models\CoTaskInfo.cs" />
+    <Compile Include="Models\DayInfo.cs" />
+    <Compile Include="Models\DiaryInfo.cs" />
+    <Compile Include="Models\GoalGroupInfo.cs" />
+    <Compile Include="Models\GoalInfo.cs" />
+    <Compile Include="Models\GoalTemplateInfo.cs" />
+    <Compile Include="Models\GoalTypeInfo.cs" />
+    <Compile Include="Models\IdeaInfo.cs" />
+    <Compile Include="Models\IdeGroupInfo.cs" />
+    <Compile Include="Models\NewsInfo.cs" />
+    <Compile Include="Models\OwnerInfo.cs" />
+    <Compile Include="Models\PragmaAttributeInfo.cs" />
+    <Compile Include="Models\PragmaInfo.cs" />
+    <Compile Include="Models\PragmaInstanceInfo.cs" />
+    <Compile Include="Models\ProjectGroupInfo.cs" />
+    <Compile Include="Models\ProjectPerfInfo.cs" />
+    <Compile Include="Models\ProjectTypeInfo.cs" />
+    <Compile Include="Models\QuarterInfo.cs" />
     <Compile Include="Models\RealHoursPerWeekInfo.cs" />
     <Compile Include="Models\SegmentEnhancedInfo.cs" />
     <Compile Include="Models\SegmentInfo.cs" />
@@ -272,7 +295,12 @@
     <Compile Include="Models\MonthInfo.cs" />
     <Compile Include="Models\ProjectSnapshotInfo.cs" />
     <Compile Include="Models\ProjectInfo.cs" />
+    <Compile Include="Models\SegmentPerfInfo.cs" />
+    <Compile Include="Models\TaskInfo.cs" />
+    <Compile Include="Models\TaskTemplateInfo.cs" />
+    <Compile Include="Models\TimeInfo.cs" />
     <Compile Include="Models\WeekInfo.cs" />
+    <Compile Include="Models\YearInfo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Providers\ApplicationOAuthProvider.cs" />
     <Compile Include="Results\ChallengeResult.cs" />

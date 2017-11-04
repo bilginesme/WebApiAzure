@@ -11,6 +11,7 @@ namespace WebApiAzure
         int weekNO;
         int weekID;
         string label, theme;
+        int performance;
         #endregion
 
         #region Constructors
@@ -21,6 +22,7 @@ namespace WebApiAzure
             GenerateData();
             label = "";
             theme = "";
+            performance = 0;
         }
         public WeekInfo(DateTime theDate)
         {
@@ -29,13 +31,14 @@ namespace WebApiAzure
             GenerateData();
             label = "";
             theme = "";
+            performance = 0;
         }
         #endregion
 
         #region Private Methods
         private void GenerateData()
         {
-            weekNO = DTC.GetWeekNumber(startDate);
+            weekNO = DTC.Date.GetWeekNumber(startDate);
             endDate = GetLastDayOfWeek(startDate);
         }
         /// <summary>
@@ -61,7 +64,7 @@ namespace WebApiAzure
             while (result.DayOfWeek != DayOfWeek.Sunday)
                 result = result.AddDays(1);
             return result;
-        } 
+        }
         #endregion
 
         #region Public Methods
@@ -76,7 +79,7 @@ namespace WebApiAzure
             int count = 0;
             DateTime date = startDate;
 
-            while(date < endDate)
+            while (date < endDate)
             {
                 if (first != date.Month) break;
                 date = date.AddDays(1);
@@ -100,12 +103,49 @@ namespace WebApiAzure
         #endregion
 
         #region Public Properties
-        public DateTime StartDate { get { return startDate; } set { startDate = value; GenerateData(); }}
-        public DateTime EndDate { get { return endDate; }}
-        public int WeekNO { get { return weekNO; }}
-        public string Label { get { return label; } set { label = value; }}
-        public string Theme { get { return theme; } set { theme = value; }}
-        public int WeekID { get { return weekID; } set { weekID = value; }}
+        /// <summary>
+        /// First day of the week
+        /// </summary>
+        public DateTime StartDate
+        {
+            get { return startDate; }
+            set
+            {
+                startDate = value;
+                GenerateData();
+            }
+        }
+        /// <summary>
+        /// Last day of the week
+        /// </summary>
+        public DateTime EndDate
+        {
+            get { return endDate; }
+        }
+        public int WeekNO
+        {
+            get { return weekNO; }
+        }
+        public string Label
+        {
+            get { return label; }
+            set { label = value; }
+        }
+        public string Theme
+        {
+            get { return theme; }
+            set { theme = value; }
+        }
+        public int WeekID
+        {
+            get { return weekID; }
+            set { weekID = value; }
+        }
+        public int Performance
+        {
+            get { return performance; }
+            set { performance = value; }
+        }
         #endregion
     }
 }

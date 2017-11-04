@@ -283,3 +283,4 @@ C:\inetpub\wwwroot\WebApiAzure\WebApiAzure\bin\System.Web.Http.Owin.xml
 C:\inetpub\wwwroot\WebApiAzure\WebApiAzure\obj\Debug\WebApiAzure.dll
 C:\inetpub\wwwroot\WebApiAzure\WebApiAzure\obj\Debug\WebApiAzure.pdb
 C:\inetpub\wwwroot\WebApiAzure\WebApiAzure\obj\Debug\WebApiAzure.csprojResolveAssemblyReference.cache
+C:\inetpub\wwwroot\WebApiAzure\WebApiAzure\obj\Debug\WebApiAzure.csproj.CoreCompileInputs.cache

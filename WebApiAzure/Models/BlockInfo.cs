@@ -8,15 +8,20 @@ namespace WebApiAzure
     public class BlockInfo : ICloneable
     {
         #region Private Members
-        long id;        
+        long id;
         string title;
         string details;
         int projectID;
-        bool hasDue;
         DateTime startDate;
         DateTime endDate;
         DateTime dueDate;
+        bool hasDue;
         DTC.StatusEnum status;
+        int order;
+        int chapterID;
+        int clusterID;
+        string projectCode;
+        int runningGoalID;
         #endregion
 
         #region Constructors
@@ -31,12 +36,17 @@ namespace WebApiAzure
             hasDue = false;
             projectID = 0;
             status = DTC.StatusEnum.Running;
+            order = 0;
+            chapterID = 0;
+            clusterID = 0;
+            projectCode = string.Empty;
+            runningGoalID = 0;
         }
         public BlockInfo(int id, string title)
         {
             this.id = id;
             this.title = title;
-        } 
+        }
         #endregion
 
         #region Public Methods
@@ -64,12 +74,13 @@ namespace WebApiAzure
         public DateTime DueDate { get { return dueDate; } set { dueDate = value; }}
         public bool HasDue { get { return hasDue; } set { hasDue = value; }}
         public DTC.StatusEnum Status { get { return status; } set { status = value; }}
+        public int Order { get { return order; } set { order = value; }}
+        public int ChapterID { get { return chapterID; } set { chapterID = value; }}
+        public int ClusterID { get { return clusterID; } set { clusterID = value; }}
+        public string ProjectCode { get { return projectCode; } set { projectCode = value; }}
+        public int RunningGoalID { get { return runningGoalID; } set { runningGoalID = value; }}
         #endregion
 
-        object ICloneable.Clone()
-        {
-            // make memberwise copy
-            return this.MemberwiseClone();
-        }
+        object ICloneable.Clone() { return this.MemberwiseClone(); }
     }
 }
