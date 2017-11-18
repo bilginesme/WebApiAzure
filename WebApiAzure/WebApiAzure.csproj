@@ -250,6 +250,9 @@
     <Compile Include="Controllers\AccountController.cs" />
     <Compile Include="Controllers\ActionableProjectsController.cs" />
     <Compile Include="Controllers\BlocksEnhacedController.cs" />
+    <Compile Include="Controllers\GoalGroupsController.cs" />
+    <Compile Include="Controllers\GoalsController.cs" />
+    <Compile Include="Controllers\GoalsOfProjectController.cs" />
     <Compile Include="Controllers\OldestSegmentsController.cs" />
     <Compile Include="Controllers\RealHoursPerWeekController.cs" />
     <Compile Include="Controllers\SegmentsController.cs" />

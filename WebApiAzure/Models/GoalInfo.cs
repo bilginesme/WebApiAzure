@@ -336,6 +336,8 @@ namespace WebApiAzure.Models
         public float PragmaAttributeValue { get { return pragmaAttributeValue; } set { pragmaAttributeValue = value; }}
         public int PragmaNumInstances { get { return pragmaNumInstances; } set { pragmaNumInstances = value; }}
         public bool IsBlackAndWhite { get { return isBlackAndWhite; } set { isBlackAndWhite = value; }}
+        public float PresentPercentage { get { return GetPresentPercentage(); } }
+        public float PresentValue { get { return presentValue; } }
         #endregion
 
         object ICloneable.Clone() { return this.MemberwiseClone(); }

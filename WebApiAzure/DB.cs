@@ -2309,7 +2309,6 @@ namespace WebApiAzure
             }
         }
 
-
         public class Blocks
         {
             public static long AddUpdateBlock(BlockInfo block)
@@ -2507,9 +2506,9 @@ namespace WebApiAzure
             public static float GetSize(BlockInfo block)
             {
                 float totalSize = 0;
-                Dictionary<int, SegmentInfo> segments = Segments.GetSegments(block.ID);
+                List<SegmentInfo> segments = Segments.GetSegments(block.ID);
 
-                foreach (SegmentInfo segment in segments.Values)
+                foreach (SegmentInfo segment in segments)
                     totalSize += segment.GetSize();
 
                 return totalSize;
@@ -2525,11 +2524,11 @@ namespace WebApiAzure
                 float totalSize = 0;
                 float completeness = 0;
 
-                Dictionary<int, SegmentInfo> segments = Segments.GetSegments(block.ID);
+                List<SegmentInfo> segments = Segments.GetSegments(block.ID);
 
                 // if we're here, it means that the block is not completed in time
                 // now we'll calculate the performance
-                foreach (SegmentInfo segment in segments.Values)
+                foreach (SegmentInfo segment in segments)
                 {
                     totalSize += segment.GetSize();
 
@@ -2690,9 +2689,9 @@ namespace WebApiAzure
 
                 return info;
             }
-            public static Dictionary<int, SegmentInfo> GetSegments(long blockID)
+            public static List<SegmentInfo> GetSegments(long blockID)
             {
-                Dictionary<int, SegmentInfo> dict = new Dictionary<int, SegmentInfo>();
+                List<SegmentInfo> data = new List<SegmentInfo>();
 
                 string strSQL = "SELECT Segments.*, Goals.GoalID" +
                     " FROM Segments" +
@@ -2703,13 +2702,9 @@ namespace WebApiAzure
                     " ORDER BY Segments.TheOrder";
                 DataTable dt = RunExecuteReader(strSQL);
                 foreach (DataRow dr in dt.Rows)
-                {
-                    int segmentID = Convert.ToInt32(dr["SegmentID"]);
-                    if (!dict.ContainsKey(segmentID))
-                        dict.Add(segmentID, GetSegment(dr));
-                }
+                    data.Add(GetSegment(dr));
                 
-                return dict;
+                return data;
             }
             public static Dictionary<int, SegmentInfo> GetSegmentsCompleted(DateTime startDate, DateTime endDate, ProjectInfo project)
             {
@@ -2903,26 +2898,22 @@ namespace WebApiAzure
 
                 return segmentPerfs;
             }
-            public static Dictionary<int, SegmentInfo> GetSegments(ProjectInfo project)
+            public static List<SegmentInfo> GetSegments(int projectID)
             {
-                Dictionary<int, SegmentInfo> dict = new Dictionary<int, SegmentInfo>();
+                List<SegmentInfo> data = new List<SegmentInfo>();
 
                 string strSQL = "SELECT Segments.*, Goals.GoalID" +
                     " FROM Segments" +
                     " INNER JOIN Blocks ON Segments.BlockID = Blocks.BlockID" +
                     " LEFT OUTER JOIN Goals ON Segments.SegmentID = Goals.ItemID" +
                     " AND Goals.GoalTypeID = " + (int)GoalTypeInfo.TypeEnum.Segment +
-                    " WHERE Blocks.ProjectID = " + project.ID +
+                    " WHERE Blocks.ProjectID = " + projectID +
                     " ORDER BY Blocks.TheOrder, Segments.TheOrder";
                 DataTable dt = RunExecuteReader(strSQL);
                 foreach (DataRow dr in dt.Rows)
-                {
-                    int segmentID = Convert.ToInt32(dr["SegmentID"]);
-                    if (!dict.ContainsKey(segmentID))
-                        dict.Add(segmentID, GetSegment(dr));
-                }
+                    data.Add(GetSegment(dr));
                 
-                return dict;
+                return data;
             }
         }
 
@@ -4032,25 +4023,21 @@ namespace WebApiAzure
                 RunNonQuery(SQL);
             }
 
-            public static Dictionary<int, GoalGroupInfo> GetGoalGroups()
+            public static List<GoalGroupInfo> GetGoalGroups()
             {
-                Dictionary<int, GoalGroupInfo> dict = new Dictionary<int, GoalGroupInfo>();
+                List<GoalGroupInfo> data = new List<GoalGroupInfo>();
                 string SQL = "SELECT * " +
                    " FROM GoalGroups " +
                    " ORDER BY GoalGroupOrder";
                 DataTable dt = RunExecuteReader(SQL);
                 foreach (DataRow dr in dt.Rows)
-                {
-                    GoalGroupInfo info = new GoalGroupInfo();
-                    info = GetGoalGroup(dr);
-                    dict.Add(Convert.ToInt32(dr["GoalGroupID"]), info);
-                }
-                
-                return dict;
+                    data.Add(GetGoalGroup(dr));
+
+                return data;
             }
-            public static Dictionary<GoalTypeInfo.TypeEnum, GoalTypeInfo> GetGoalTypes()
+            public static List<GoalTypeInfo> GetGoalTypes()
             {
-                Dictionary<GoalTypeInfo.TypeEnum, GoalTypeInfo> dict = new Dictionary<GoalTypeInfo.TypeEnum, GoalTypeInfo>();
+                List<GoalTypeInfo> data = new List<GoalTypeInfo>();
 
                 string SQL = "SELECT * " +
                      " FROM GoalTypes " +
@@ -4069,10 +4056,10 @@ namespace WebApiAzure
                     info.Nature = (GoalTypeInfo.NatureEnum)Convert.ToInt32(dr["GoalNature"]);
                     info.IsObjective = Convert.ToBoolean(dr["IsObjective"]);
 
-                    dict.Add(info.Type, info);
+                    data.Add(info);
                 }
                 
-                if (!dict.ContainsKey(GoalTypeInfo.TypeEnum.NA))
+                if (!data.Exists(i=>i.Type == GoalTypeInfo.TypeEnum.NA))
                 {
                     GoalTypeInfo info = new GoalTypeInfo();
 
@@ -4082,13 +4069,13 @@ namespace WebApiAzure
                     info.Name = GoalTypeInfo.TypeEnum.NA.ToString();
                     info.Code = GoalTypeInfo.TypeEnum.NA.ToString();
 
-                    dict.Add(info.Type, info);
+                    data.Add(info);
                 }
 
 
-                return dict;
+                return data;
             }
-            public static Dictionary<long, GoalInfo> GetGoals(DTC.RangeEnum range, DateTime startDate, DateTime endDate, bool getPresentValues)
+            public static List<GoalInfo> GetGoals(DTC.RangeEnum range, DateTime startDate, DateTime endDate, bool getPresentValues)
             {
                 string SQL = "SELECT * " +
                     " FROM Goals " +
@@ -4104,47 +4091,51 @@ namespace WebApiAzure
                     " ORDER BY DateDue";
                 return GetGoals(SQL, getPresentValues);
             }
-            public static Dictionary<long, GoalInfo> GetOpenGoalsOfProject(ProjectInfo project, bool getPresentValues)
+            public static List<GoalInfo> GetGoalsOfProject(int projectID, bool isOnlyRunningOnes, bool getPresentValues)
             {
-                Dictionary<long, GoalInfo> results = new Dictionary<long, GoalInfo>();
+                string strIsOnlyRunninOnesProject = string.Empty;
+                string strIsOnlyRunninOnesBlock = string.Empty;
+                string strIsOnlyRunninOnesSegment = string.Empty;
+
+                if(isOnlyRunningOnes)
+                {
+                    strIsOnlyRunninOnesProject = " AND StatusID =" + (int)DTC.StatusEnum.Running;
+                    strIsOnlyRunninOnesBlock = " AND Goals.GoalTypeID = " + (int)GoalTypeInfo.TypeEnum.Block;
+                    strIsOnlyRunninOnesSegment = " AND Goals.StatusID = " + (int)DTC.StatusEnum.Running;
+                }
+
+                List<GoalInfo> data = new List<GoalInfo>();
                 string SQL = "SELECT * " +
                     " FROM Goals " +
-                    " WHERE ProjectID = " + project.ID +
-                    " AND StatusID =" + (int)DTC.StatusEnum.Running +
+                    " WHERE ProjectID = " + projectID +
+                    strIsOnlyRunninOnesProject +
                     " AND TemplateID = 0" +
                     " ORDER BY DateDue";
-                foreach (GoalInfo g in GetGoals(SQL, getPresentValues).Values)
-                {
-                    results.Add(g.ID, g);
-                }
+                foreach (GoalInfo g in GetGoals(SQL, getPresentValues))
+                    data.Add(g);
 
                 SQL = "SELECT Goals.*" +
                     " FROM Goals " +
                     " INNER JOIN Blocks ON Goals.ItemID = Blocks.BlockID" +
-                    " WHERE Blocks.ProjectID = " + project.ID +
-                    " AND Goals.GoalTypeID = " + (int)GoalTypeInfo.TypeEnum.Block +
+                    " WHERE Blocks.ProjectID = " + projectID +
+                    strIsOnlyRunninOnesBlock +
                     " AND Goals.StatusID = " + (int)DTC.StatusEnum.Running;
-                foreach (GoalInfo g in GetGoals(SQL, getPresentValues).Values)
-                {
-                    results.Add(g.ID, g);
-                }
+                foreach (GoalInfo g in GetGoals(SQL, getPresentValues))
+                    data.Add(g);
 
                 SQL = "SELECT Goals.*" +
                     " FROM  Segments " +
                     " INNER JOIN Blocks ON Segments.BlockID = Blocks.BlockID " +
                     " INNER JOIN Goals ON Segments.SegmentID = Goals.ItemID" +
                     " WHERE Goals.GoalTypeID = " + (int)GoalTypeInfo.TypeEnum.Segment +
-                    " AND Goals.StatusID = " + (int)DTC.StatusEnum.Running +
-                    " AND Blocks.ProjectID = " + project.ID;
-                foreach (GoalInfo g in GetGoals(SQL, getPresentValues).Values)
-                {
-                    results.Add(g.ID, g);
-                }
+                    strIsOnlyRunninOnesSegment +
+                    " AND Blocks.ProjectID = " + projectID;
+                foreach (GoalInfo g in GetGoals(SQL, getPresentValues))
+                    data.Add(g);
 
-
-                return results;
+                return data;
             }
-            public static Dictionary<long, GoalInfo> GetGoals(GoalTypeInfo.TypeEnum goalType, DateTime startDate, DateTime endDate, bool getPresentValues)
+            public static List<GoalInfo> GetGoals(GoalTypeInfo.TypeEnum goalType, DateTime startDate, DateTime endDate, bool getPresentValues)
             {
                 string SQL = "SELECT * " +
                     " FROM Goals" +
@@ -4160,34 +4151,15 @@ namespace WebApiAzure
                     " ORDER BY DateDue";
                 return GetGoals(SQL, getPresentValues);
             }
-            public static Dictionary<long, GoalInfo> GetGoals(GoalTypeInfo.TypeEnum goalType, DTC.RangeEnum range, DateTime startDate, DateTime endDate, bool getPresentValues)
+            public static List<GoalInfo> GetGoals(GoalTypeInfo.TypeEnum goalType, DTC.RangeEnum range, DateTime startDate, DateTime endDate, bool getPresentValues)
             {
-                Dictionary<long, GoalInfo> dict = new Dictionary<long, GoalInfo>();
-
-                foreach (GoalInfo g in GetGoals(goalType, startDate, endDate, getPresentValues).Values)
-                {
-                    if (g.Range == range)
-                        dict.Add(g.ID, g);
-                }
-
-                return dict;
+                return GetGoals(goalType, startDate, endDate, getPresentValues).FindAll(i => i.Range == range);
             }
-            public static Dictionary<long, GoalInfo> GetImportantGoals(DTC.RangeEnum range, DateTime startDate, DateTime endDate, bool getPresentValues)
+            public static List<GoalInfo> GetImportantGoals(DTC.RangeEnum range, DateTime startDate, DateTime endDate, bool getPresentValues)
             {
-                Dictionary<long, GoalInfo> dict = new Dictionary<long, GoalInfo>();
-
-                foreach (GoalInfo g in GetGoals(range, startDate, endDate, getPresentValues).Values)
-                {
-                    if (g.Range == range)
-                    {
-                        if (g.GoalType == GoalTypeInfo.TypeEnum.ProjectGoal || g.GoalType == GoalTypeInfo.TypeEnum.Block || g.IsFocus)
-                            dict.Add(g.ID, g);
-                    }
-                }
-
-                return dict;
+                return GetGoals(range, startDate, endDate, getPresentValues).FindAll(i => i.Range == range && i.GoalType == GoalTypeInfo.TypeEnum.ProjectGoal || i.GoalType == GoalTypeInfo.TypeEnum.Block || i.IsFocus);
             }
-            public static Dictionary<long, GoalInfo> GetGoals(OwnerInfo owner, bool getPresentValues)
+            public static List<GoalInfo> GetGoals(OwnerInfo owner, bool getPresentValues)
             {
                 string SQL = "SELECT * " +
                     " FROM Goals " +
@@ -4197,34 +4169,29 @@ namespace WebApiAzure
                     " ORDER BY DateDue";
                 return GetGoals(SQL, getPresentValues);
             }
-            public static Dictionary<long, GoalInfo> GetGoals(string SQL, bool getPresentValues)
+            public static List<GoalInfo> GetGoals(string SQL, bool getPresentValues)
             {
-                Dictionary<long, GoalInfo> dict = new Dictionary<long, GoalInfo>();
+                List<GoalInfo> data = new List<GoalInfo>();
                 DataTable dt = RunExecuteReader(SQL);
 
                 foreach (DataRow dr in dt.Rows)
-                {
-                    GoalInfo info = new GoalInfo();
-                    info = GetGoal(dr, getPresentValues);
-                    dict.Add(Convert.ToInt32(dr["GoalID"]), info);
-                }
-                
-                return dict;
+                    data.Add(GetGoal(dr, getPresentValues));
+
+                return data;
             }
-            public static Dictionary<long, GoalInfo> GetGoals(List<OwnerInfo> owners, bool getPresentValues)
+            public static List<GoalInfo> GetGoals(List<OwnerInfo> owners, bool getPresentValues)
             {
                 string SQL = "SELECT * FROM Goals " +
                     " WHERE TemplateID = 0 " +
                     " AND GoalID < 0";
                 foreach (OwnerInfo owner in owners)
-                {
                     SQL += " OR (OwnerID =" + owner.OwnerID + " AND GoalRange = " + (int)owner.Range + ")";
-                }
 
                 SQL += " ORDER BY GoalRange, DateDue";
+
                 return GetGoals(SQL, getPresentValues);
             }
-            public static Dictionary<long, GoalInfo> GetGoalsWithFocus(DTC.RangeEnum range)
+            public static List<GoalInfo> GetGoalsWithFocus(DTC.RangeEnum range)
             {
                 string strRange = "";
                 if (range != DTC.RangeEnum.Floating)
@@ -4892,7 +4859,7 @@ namespace WebApiAzure
                 string SQL = "SELECT * FROM GoalTemplates ORDER BY TemplateName ASC";
                 return GetGoalTemplates(SQL);
             }
-            public static Dictionary<long, GoalInfo> GetGoals(GoalTemplateInfo goalTemplate)
+            public static List<GoalInfo> GetGoals(GoalTemplateInfo goalTemplate)
             {
                 string SQL = "SELECT * FROM Goals" +
                     " WHERE TemplateID = " + goalTemplate.ID;
