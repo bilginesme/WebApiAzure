@@ -22,6 +22,20 @@ namespace WebApiAzure.Controllers
             return goals;
         }
 
+        [HttpGet]
+        [Route("api/Goals/{rangeID}/{getPresentValues}")]
+        public IEnumerable<GoalInfo> Get(int rangeID, bool getPresentValues)
+        {
+            List<GoalInfo> goals = new List<GoalInfo>();
+            DTC.RangeEnum range = (DTC.RangeEnum)rangeID;
+
+            OwnerInfo owner = DB.Owner.GetOwner(range, DateTime.Today);
+            goals = DB.Goals.GetGoals(owner, true);
+            goals = goals.OrderByDescending(i => i.PresentPercentage).ToList();
+
+            return goals;
+        }
+
         // GET: api/Goals/5
         public string Get(int id)
         {

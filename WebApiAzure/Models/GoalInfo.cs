@@ -193,17 +193,24 @@ namespace WebApiAzure.Models
         {
             float result = 0;
 
-            if (goalValue > 0)
+            if(status == DTC.StatusEnum.Success)
             {
-                if (nature == NatureEnum.Standart)
-                    result = 100 * (presentValue - startingValue) / (goalValue - startingValue);
-                else if (nature == NatureEnum.BetweenLimits)
-                    result = 100 * (goalValue - presentValue) / goalValue;
+                result = 100;
             }
-            else result = 0;
+            else
+            {
+                if (goalValue > 0)
+                {
+                    if (nature == NatureEnum.Standart)
+                        result = 100 * (presentValue - startingValue) / (goalValue - startingValue);
+                    else if (nature == NatureEnum.BetweenLimits)
+                        result = 100 * (goalValue - presentValue) / goalValue;
+                }
+                else result = 0;
 
-            if (result > 100) result = 100;
-            if (result < 0) result = 0;
+                if (result > 100) result = 100;
+                if (result < 0) result = 0;
+            }
 
             return result;
         }

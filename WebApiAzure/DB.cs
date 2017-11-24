@@ -3862,6 +3862,7 @@ namespace WebApiAzure
                 goalGroup.Name = Convert.ToString(dr["GoalGroupName"]);
                 goalGroup.Code = Convert.ToString(dr["GoalGroupCode"]);
                 goalGroup.Order = Convert.ToInt32(dr["GoalGroupOrder"]);
+                goalGroup.Leverage = (DTC.SizeEnum)Convert.ToInt16(dr["Leverage"]);
 
                 return goalGroup;
             }
@@ -3870,6 +3871,7 @@ namespace WebApiAzure
                 string SQL = "UPDATE GoalGroups SET " +
                     " GoalGroupName = '" + DTC.Control.InputText(gg.Name, 50) + "'," +
                     " GoalGroupCode = '" + DTC.Control.InputText(gg.Code, 12) + "'," +
+                    " Leverage = " + (int)gg.Leverage + "," +
                     " GoalGroupOrder = " + gg.Order + "," +
                     " WHERE GoalGroupID = " + gg.ID;
                 RunNonQuery(SQL);

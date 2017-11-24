@@ -12,6 +12,7 @@ namespace WebApiAzure.Models
         string name;
         string code;
         int order;
+        DTC.SizeEnum leverage;
         #endregion
 
         #region Constructors
@@ -21,6 +22,7 @@ namespace WebApiAzure.Models
             name = "";
             code = "";
             order = 0;
+            leverage = DTC.SizeEnum.Zero;
         }
         public GoalGroupInfo(int id, string name)
         {
@@ -34,6 +36,7 @@ namespace WebApiAzure.Models
         public string Name { get { return name; } set { name = value; }}
         public string Code { get { return code; } set { code = value; }}
         public int Order { get { return order; } set { order = value; }}
+        public DTC.SizeEnum Leverage { get { return leverage; } set { leverage = value; }}
         #endregion
     }
 }
