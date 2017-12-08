@@ -16,21 +16,31 @@ namespace WebApiAzure.Controllers
         {
             OwnerInfo owner = DB.Owner.GetOwner(DTC.RangeEnum.Week, DateTime.Today);
             List<GoalInfo> goals = DB.Goals.GetGoals(owner, true);
-
+                                                                           
             goals = goals.OrderByDescending(i => i.PresentPercentage).ToList();
 
             return goals;
         }
 
         [HttpGet]
-        [Route("api/Goals/{rangeID}/{getPresentValues}")]
-        public IEnumerable<GoalInfo> Get(int rangeID, bool getPresentValues)
+        [Route("api/Goals/{rangeID}/{getPresentValues}/{standartOrProjected}")]
+        public IEnumerable<GoalInfo> Get(int rangeID, bool getPresentValues, int standartOrProjected)
         {
             List<GoalInfo> goals = new List<GoalInfo>();
             DTC.RangeEnum range = (DTC.RangeEnum)rangeID;
 
             OwnerInfo owner = DB.Owner.GetOwner(range, DateTime.Today);
             goals = DB.Goals.GetGoals(owner, true);
+            DayInfo today = DB.Days.GetDay(DateTime.Today, true);
+
+            foreach (GoalInfo goal in goals)
+            {
+                if (standartOrProjected == 1)
+                    goal.PresentPercentage = goal.GetPresentPercentage();
+                if (standartOrProjected == 2)
+                    goal.PresentPercentage = goal.GetPerformance(false, today);     // What does it mean? isFull
+            }
+
             goals = goals.OrderByDescending(i => i.PresentPercentage).ToList();
 
             return goals;

@@ -49,7 +49,7 @@ namespace WebApiAzure.Models
         string pragmaAttributePhrase;
         float pragmaAttributeValue;
         int pragmaNumInstances;
-        float presentValue = 0;
+        float presentValue = 0, presentPercentage = 0;
         bool isBlackAndWhite;
         #endregion
 
@@ -343,7 +343,7 @@ namespace WebApiAzure.Models
         public float PragmaAttributeValue { get { return pragmaAttributeValue; } set { pragmaAttributeValue = value; }}
         public int PragmaNumInstances { get { return pragmaNumInstances; } set { pragmaNumInstances = value; }}
         public bool IsBlackAndWhite { get { return isBlackAndWhite; } set { isBlackAndWhite = value; }}
-        public float PresentPercentage { get { return GetPresentPercentage(); } }
+        public float PresentPercentage { get { return presentPercentage; } set { presentPercentage = value; } }
         public float PresentValue { get { return presentValue; } }
         #endregion
 

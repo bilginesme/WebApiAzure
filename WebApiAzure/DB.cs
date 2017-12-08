@@ -4792,6 +4792,51 @@ namespace WebApiAzure
                 return " WHERE " + tableName + ".TaskDate >= " + DTC.Date.ObtainGoodDT(goal.StartDate, true) +
                     " AND " + tableName + ".TaskDate <= " + DTC.Date.ObtainGoodDT(goal.DueDate, true);
             }
+
+            public static void RefreshAll(DateTime date)
+            {
+                /*
+                OwnerInfo owner;
+                DayInfo day = DB.Days.GetDay(date, true);
+
+                owner = DB.Owner.GetOwner(DTC.RangeEnum.Day, date);
+                Dictionary<int, GoalInfo> dailyGoals = DB.Goals.GetGoals(owner, true);
+                day.Performance = Convert.ToInt16(DTC.Goals.GetPerformance(dailyGoals, DTC.Goals.PerformanceNatureEnum.Normal) * 100);
+
+                WeekInfo week = DB.Weeks.GetWeek(date, true);
+                owner = DB.Owner.GetOwner(DTC.RangeEnum.Week, date);
+                Dictionary<int, GoalInfo> weeklyGoals = DB.Goals.GetGoals(owner, true);
+                week.Performance = Convert.ToInt16(DTC.Goals.GetPerformance(weeklyGoals, DTC.Goals.PerformanceNatureEnum.Normal) * 100);
+                day.PerfWeek = week.Performance;
+                DB.Weeks.AddUpdateWeek(week);
+
+                MonthInfo month = DB.Months.GetMonth(date, true);
+                owner = DB.Owner.GetOwner(DTC.RangeEnum.Month, date);
+                Dictionary<int, GoalInfo> monthlyGoals = DB.Goals.GetGoals(owner, true);
+                month.Performance = Convert.ToInt16(DTC.Goals.GetPerformance(monthlyGoals, DTC.Goals.PerformanceNatureEnum.Normal) * 100);
+                day.PerfMonth = month.Performance;
+                DB.Months.AddUpdateMonth(month);
+
+                QuarterInfo quarter = DB.Quarters.GetQuarter(date, true);
+                owner = DB.Owner.GetOwner(DTC.RangeEnum.Quarter, date);
+                Dictionary<int, GoalInfo> quarterlyGoals = DB.Goals.GetGoals(owner, true);
+                quarter.Performance = Convert.ToInt16(DTC.Goals.GetPerformance(quarterlyGoals, DTC.Goals.PerformanceNatureEnum.Normal) * 100);
+                day.PerfQuarter = quarter.Performance;
+                DB.Quarters.AddUpdateQuarter(quarter);
+
+                YearInfo year = DB.Years.GetYear(date, true);
+                owner = DB.Owner.GetOwner(DTC.RangeEnum.Year, date);
+                Dictionary<int, GoalInfo> yearlyGoals = DB.Goals.GetGoals(owner, true);
+                year.Performance = Convert.ToInt16(DTC.Goals.GetPerformance(yearlyGoals, DTC.Goals.PerformanceNatureEnum.Normal) * 100);
+                day.PerfYear = year.Performance;
+                DB.Years.AddUpdateYear(year);
+
+                // we update day on purpose,
+                // day has weekly, monthly, quarterly and yearly perf values
+                DB.Days.AddUpdateDay(day);
+
+                */
+            }
         }
 
         public class GoalTemplates
