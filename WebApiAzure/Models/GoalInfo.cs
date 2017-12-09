@@ -24,33 +24,28 @@ namespace WebApiAzure.Models
         DTC.StatusEnum status;
         DTC.SizeEnum size;
         GoalTypeInfo.TypeEnum goalType;
-        string definition;
-        string details;
+        string definition, details;
         float startingValue;
         float goalValue;
-        int primaryProjectID;
         int estimatedMinutes;
         float estimatedHours;
         float thresholdValue;
         float genericValue;
         int itemID;
         int projectGroupID;
-        int projectID;
-        int secondaryProjectGroupID;
-        int secondaryProjectID;
-        int tertiaryProjectGroupID;
-        int tertiaryProjectID;
+        int primaryProjectID;
+        int projectID, secondaryProjectGroupID, secondaryProjectID, tertiaryProjectGroupID, tertiaryProjectID;
         string hour;
         int criteria;
         int measurementStyle;
         int itemNature;
-        int pragmaID;
-        int pragmaAttributeID;
+        int pragmaID, pragmaAttributeID;
         string pragmaAttributePhrase;
         float pragmaAttributeValue;
         int pragmaNumInstances;
         float presentValue = 0, presentPercentage = 0;
         bool isBlackAndWhite;
+        float contribution, contributionMax;
         #endregion
 
         #region Constructors
@@ -95,6 +90,7 @@ namespace WebApiAzure.Models
             pragmaAttributeValue = 0;
             pragmaNumInstances = 0;
             isBlackAndWhite = false;
+            contribution = contributionMax = 0;
         }
         #endregion
 
@@ -297,10 +293,7 @@ namespace WebApiAzure.Models
         {
             return presentValue;
         }
-        public void SetPresentValue(float value)
-        {
-            presentValue = value;
-        }
+        public void SetPresentValue(float value) { presentValue = value; }
         #endregion
 
         #region Public Properties
@@ -345,6 +338,8 @@ namespace WebApiAzure.Models
         public bool IsBlackAndWhite { get { return isBlackAndWhite; } set { isBlackAndWhite = value; }}
         public float PresentPercentage { get { return presentPercentage; } set { presentPercentage = value; } }
         public float PresentValue { get { return presentValue; } }
+        public float Contribution { get { return contribution; } set { contribution = value; } }
+        public float ContributionMax { get { return contributionMax; } set { contributionMax = value; } }
         #endregion
 
         object ICloneable.Clone() { return this.MemberwiseClone(); }

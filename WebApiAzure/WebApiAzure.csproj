@@ -253,6 +253,7 @@
     <Compile Include="Controllers\GoalGroupsController.cs" />
     <Compile Include="Controllers\GoalsController.cs" />
     <Compile Include="Controllers\GoalsOfProjectController.cs" />
+    <Compile Include="Controllers\GoalsSuggestionsController.cs" />
     <Compile Include="Controllers\OldestSegmentsController.cs" />
     <Compile Include="Controllers\RealHoursPerWeekController.cs" />
     <Compile Include="Controllers\SegmentsController.cs" />

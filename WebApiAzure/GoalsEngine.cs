@@ -17,11 +17,11 @@ namespace WebApiAzure
         #endregion
 
         #region Constructors
-        public GoalsEngine(List<GoalInfo> goals, List<GoalGroupInfo> goalGroups)
+        public GoalsEngine(List<GoalInfo> goals, List<GoalGroupInfo> goalGroups, DayInfo today)
         {
             this.goals = goals;
             this.goalGroups = goalGroups;
-            today = DB.Days.GetDay(DateTime.Today, true);
+            this.today = today;
         }
         #endregion
 
