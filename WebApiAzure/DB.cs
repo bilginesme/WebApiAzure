@@ -3920,6 +3920,7 @@ namespace WebApiAzure
                 goal.PragmaNumInstances = Convert.ToInt16(dr["PragmaNumInstances"]);
                 goal.IsBlackAndWhite = Convert.ToBoolean(dr["IsBlackAndWhite"]);
                 goal.PrimaryProjectID = Convert.ToInt32(dr["PrimaryProjectID"]);
+                goal.HoursPerUnit = Convert.ToSingle(dr["HoursPerUnit"]);
 
                 if (getPresentValues) goal.SetPresentValue(GetPresentValue(goal, goal.EndDate));
 
@@ -3935,7 +3936,7 @@ namespace WebApiAzure
                     " ItemID, ProjectGroupID, ProjectID, SecondaryProjectGroupID, SecondaryProjectID," +
                     " TertiaryProjectGroupID, TertiaryProjectID, Hour, Criteria, ItemNature, MeasurementStyle," +
                     " PragmaID, PragmaAttributeID, PragmaAttributePhrase, " +
-                    " PragmaAttributeValue, PragmaNumInstances, IsBlackAndWhite" +
+                    " PragmaAttributeValue, PragmaNumInstances, IsBlackAndWhite, HoursPerUnit" +
                     " )" +
                     " VALUES (" +
                     goal.GroupID + "," +
@@ -3975,7 +3976,8 @@ namespace WebApiAzure
                     "'" + goal.PragmaAttributePhrase + "'," +
                     DTC.Control.CommaToDot(goal.PragmaAttributeValue) + "," +
                     goal.PragmaNumInstances + "," +
-                    Convert.ToInt16(goal.IsBlackAndWhite) +
+                    Convert.ToInt16(goal.IsBlackAndWhite) + "," +
+                    goal.HoursPerUnit +
                     " ) SELECT SCOPE_IDENTITY() AS GoalID";
                 goal.ID = RunExecuteScalar(SQL);
 
@@ -4020,7 +4022,8 @@ namespace WebApiAzure
                      " PragmaAttributePhrase = '" + goal.PragmaAttributePhrase + "'," +
                      " PragmaAttributeValue = " + DTC.Control.CommaToDot(goal.PragmaAttributeValue) + "," +
                      " PragmaNumInstances = " + goal.PragmaNumInstances + "," +
-                     " IsBlackAndWhite = " + Convert.ToInt16(goal.IsBlackAndWhite) +
+                     " IsBlackAndWhite = " + Convert.ToInt16(goal.IsBlackAndWhite) + "," +
+                     " HoursPerUnit = " + Convert.ToSingle(goal.HoursPerUnit) +
                      " WHERE GoalID = " + goal.ID;
                 RunNonQuery(SQL);
             }

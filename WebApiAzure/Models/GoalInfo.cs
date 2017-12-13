@@ -46,6 +46,7 @@ namespace WebApiAzure.Models
         float presentValue = 0, presentPercentage = 0;
         bool isBlackAndWhite;
         float contribution, contributionMax;
+        float hoursPerUnit;
         #endregion
 
         #region Constructors
@@ -91,6 +92,7 @@ namespace WebApiAzure.Models
             pragmaNumInstances = 0;
             isBlackAndWhite = false;
             contribution = contributionMax = 0;
+            hoursPerUnit = 0;
         }
         #endregion
 
@@ -188,7 +190,7 @@ namespace WebApiAzure.Models
         public float GetPresentPercentage()
         {
             float result = 0;
-
+             
             if(status == DTC.StatusEnum.Success)
             {
                 result = 100;
@@ -197,10 +199,17 @@ namespace WebApiAzure.Models
             {
                 if (goalValue > 0)
                 {
-                    if (nature == NatureEnum.Standart)
-                        result = 100 * (presentValue - startingValue) / (goalValue - startingValue);
-                    else if (nature == NatureEnum.BetweenLimits)
-                        result = 100 * (goalValue - presentValue) / goalValue;
+                    if(goalType == GoalTypeInfo.TypeEnum.Weight && presentValue == 0)
+                    {
+                        result = 0;
+                    }
+                    else
+                    {
+                        if (nature == NatureEnum.Standart)
+                            result = 100 * (presentValue - startingValue) / (goalValue - startingValue);
+                        else if (nature == NatureEnum.BetweenLimits)
+                            result = 100 * (goalValue - presentValue) / goalValue;
+                    }
                 }
                 else result = 0;
 
@@ -340,6 +349,7 @@ namespace WebApiAzure.Models
         public float PresentValue { get { return presentValue; } }
         public float Contribution { get { return contribution; } set { contribution = value; } }
         public float ContributionMax { get { return contributionMax; } set { contributionMax = value; } }
+        public float HoursPerUnit { get { return hoursPerUnit; } set { hoursPerUnit = value; } }
         #endregion
 
         object ICloneable.Clone() { return this.MemberwiseClone(); }
