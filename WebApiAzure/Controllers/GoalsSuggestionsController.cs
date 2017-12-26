@@ -26,8 +26,8 @@ namespace WebApiAzure.Controllers
 
             foreach(GoalInfo goal in goalsAll)
             {
-                goal.Contribution = goalEngine.GetGoalContributionWeighted(goal, false);
-                goal.ContributionMax = goalEngine.GetGoalContributionWeighted(goal, true);
+                goal.Contribution = goalEngine.GetGoalContributionWeighted(goal, false, GoalsEngine.PerformanceNatureEnum.Worst);
+                goal.ContributionMax = goalEngine.GetGoalContributionWeighted(goal, true, GoalsEngine.PerformanceNatureEnum.Worst);
             }
 
             foreach (GoalInfo gOut in goalsAll)

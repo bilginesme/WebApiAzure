@@ -18,6 +18,7 @@ namespace WebApiAzure.Models
         int id;
         string name;
         string code;
+        string projectImgName;
         string details;
         int projectGroupID;
         bool isActive;
@@ -30,6 +31,7 @@ namespace WebApiAzure.Models
         int order;
         ShowHowManyTasksEnum showHowManyTasks;
         DTC.RangeEnum monitoringFrequency;
+        string smartCode;
         #endregion
 
         #region Constructors
@@ -38,6 +40,7 @@ namespace WebApiAzure.Models
             id = 0;
             name = "";
             code = "";
+            projectImgName = string.Empty;
             details = "";
             projectGroupID = 0;
             isActive = true;
@@ -113,6 +116,7 @@ namespace WebApiAzure.Models
         public int ID { get { return id; } set { id = value; }}
         public string Name { get { return name; } set { name = value; }}
         public string Code { get { return code; } set { code = value; }}
+        public string ProjectImgName { get { return projectImgName; } set { projectImgName = value; } }
         public string Details { get { return details; } set { details = value; }}
         public int ProjectGroupID { get { return projectGroupID; } set { projectGroupID = value; }}
         public bool IsActive { get { return isActive; } set { isActive = value; }}
@@ -125,6 +129,7 @@ namespace WebApiAzure.Models
         public int Order { get { return order; } set { order = value; }}
         public ShowHowManyTasksEnum ShowHowManyTasks { get { return showHowManyTasks; } set { showHowManyTasks = value; }}
         public DTC.RangeEnum MonitoringFrequency { get { return monitoringFrequency; } set { monitoringFrequency = value; }}
+        public string SmartCode { get { return smartCode; } set { smartCode = value; } }
         #endregion
 
         object ICloneable.Clone() { return this.MemberwiseClone();}

@@ -41,9 +41,34 @@ namespace WebApiAzure.Controllers
                     goal.PresentPercentage = goal.GetPerformance(false, today);     // What does it mean? isFull
             }
 
-            goals = goals.OrderByDescending(i => i.PresentPercentage).ToList();
+            goals = goals.OrderByDescending(i=>i.Status).OrderByDescending(i => i.PresentPercentage).ToList();
 
             return goals;
+        }
+
+
+        [HttpGet]
+        [Route("api/Goals/{rangeID}/{projectParameter}")]
+        public IEnumerable<ProjectInfo> Get(int rangeID, string projectParameter)
+        {
+            List<ProjectInfo> projects = new List<ProjectInfo>();
+            DTC.RangeEnum range = (DTC.RangeEnum)rangeID;
+            OwnerInfo owner = DB.Owner.GetOwner(range, DateTime.Today);
+            List<GoalInfo> goals = DB.Goals.GetGoals(owner, true);
+            DayInfo today = DB.Days.GetDay(DateTime.Today, true);
+            
+            foreach (GoalInfo goal in goals)
+            {
+                if (goal.PrimaryProjectID > 0)
+                {
+                    ProjectInfo project = DB.Projects.GetProject(goal.PrimaryProjectID);
+                    ProjectGroupInfo projectGroup = DB.ProjectGroups.GetProjectGroup(project.ProjectGroupID);
+                    project.SmartCode = project.GetSmartCode(projectGroup, false);
+                    projects.Add(project);
+                }
+            }
+
+            return projects;
         }
 
         // GET: api/Goals/5

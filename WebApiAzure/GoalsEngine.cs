@@ -163,14 +163,14 @@ namespace WebApiAzure
         /// <param name="goals">Goals dictionary. This method assumes that 'goals' dictionary contains 'goal' object.</param>
         /// <param name="isMax">True if you need the maximum contribution of the goal - if it's achieved</param>
         /// <returns>The contribution value of the goal.</returns>
-        public float GetGoalContributionWeighted(GoalInfo goal, bool isMax)
+        public float GetGoalContributionWeighted(GoalInfo goal, bool isMax, PerformanceNatureEnum performanceNature)
         {
             float nF = GetNormFactor(goal);
 
             if (isMax)
-                return nF * GetGoalContributionForAll(goal, true, PerformanceNatureEnum.Normal);
+                return nF * GetGoalContributionForAll(goal, true, performanceNature);
             else
-                return nF * GetGoalContributionForAll(goal, false, PerformanceNatureEnum.Normal);
+                return nF * GetGoalContributionForAll(goal, false, performanceNature);
         }
         /// <summary>
         /// This is the full complete method for getting a 'goal's grade contribution'.
@@ -181,12 +181,12 @@ namespace WebApiAzure
         /// <param name="goals">The goals dictionary. The complete set of goals should be provided - not only the goals in the group.</param>
         /// <param name="isMax">The grade contribution of the goal</param>
         /// <returns></returns>
-        public int GetGoalContributionGrade(GoalInfo goal, bool isMax)
+        public int GetGoalContributionGrade(GoalInfo goal, bool isMax, PerformanceNatureEnum performanceNature)
         {
             float nF = GetNormFactor(goal);
-            float contribution = GetGoalContributionWeighted(goal, false);
-            float contributionMax = GetGoalContributionWeighted(goal, true);
-            float contrGroupMax = GetGroupContributionForAll(goal.GroupID, true, PerformanceNatureEnum.Normal);
+            float contribution = GetGoalContributionWeighted(goal, false, performanceNature);
+            float contributionMax = GetGoalContributionWeighted(goal, true, performanceNature);
+            float contrGroupMax = GetGroupContributionForAll(goal.GroupID, true, performanceNature);
 
             if (isMax)
                 return (int)Math.Round(100 * contributionMax / (nF * contrGroupMax));

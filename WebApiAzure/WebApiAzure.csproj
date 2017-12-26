@@ -249,6 +249,7 @@
     <Compile Include="Areas\HelpPage\XmlDocumentationProvider.cs" />
     <Compile Include="Controllers\AccountController.cs" />
     <Compile Include="Controllers\ActionableProjectsController.cs" />
+    <Compile Include="Controllers\ZonesController.cs" />
     <Compile Include="Controllers\BlocksEnhacedController.cs" />
     <Compile Include="Controllers\GoalGroupsController.cs" />
     <Compile Include="Controllers\GoalsController.cs" />
@@ -281,6 +282,7 @@
     <Compile Include="Models\GoalInfo.cs" />
     <Compile Include="Models\GoalTemplateInfo.cs" />
     <Compile Include="Models\GoalTypeInfo.cs" />
+    <Compile Include="Models\ZoneInfo.cs" />
     <Compile Include="Models\IdeaInfo.cs" />
     <Compile Include="Models\IdeGroupInfo.cs" />
     <Compile Include="Models\NewsInfo.cs" />

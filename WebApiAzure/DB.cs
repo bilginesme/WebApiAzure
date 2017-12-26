@@ -427,6 +427,7 @@ namespace WebApiAzure
 
             block.Details = Convert.ToString(dr["Details"]);
             block.ProjectID = Convert.ToInt32(dr["ProjectID"]);
+            block.ZoneID = Convert.ToInt32(dr["ZoneID"]);
             block.StartDate = Convert.ToDateTime(dr["StartDate"]);
             block.EndDate = Convert.ToDateTime(dr["EndDate"]);
             block.DueDate = Convert.ToDateTime(dr["DueDate"]);
@@ -458,6 +459,7 @@ namespace WebApiAzure
                 be.HasDue = block.HasDue;
                 be.ID = block.ID;
                 be.ProjectID = block.ProjectID;
+                be.ZoneID = block.ZoneID;
                 be.StartDate = block.StartDate;
                 be.Status = block.Status;
                 be.Title = block.Title;
@@ -1777,6 +1779,7 @@ namespace WebApiAzure
                 info.ID = Convert.ToInt32(dr["ProjectID"]);
                 info.Name = Convert.ToString(dr["ProjectName"]);
                 info.Code = Convert.ToString(dr["ProjectCode"]);
+                info.ProjectImgName = Convert.ToString(dr["ProjectImgName"]);
                 info.Details = Convert.ToString(dr["ProjectDetails"]);
                 info.IsActive = Convert.ToBoolean(dr["IsActive"]);
                 info.IsCompletable = Convert.ToBoolean(dr["IsCompletable"]);
@@ -2309,56 +2312,144 @@ namespace WebApiAzure
             }
         }
 
-        public class Blocks
+        public class Zones
         {
-            public static long AddUpdateBlock(BlockInfo block)
+            public static ZoneInfo GetZone(DataRow dr)
+            {
+                ZoneInfo info = new ZoneInfo();
+
+                info.ID = Convert.ToInt32(dr["ZoneID"]);
+                info.Title = Convert.ToString(dr["ZoneTitle"]);
+                info.HoursNeeded = Convert.ToSingle(dr["HoursNeeded"]);
+                info.IsCompleted = Convert.ToBoolean(dr["IsCompleted"]);
+                info.ProjectID = Convert.ToInt32(dr["ProjectID"]);
+                if (dr["StartDate"] != DBNull.Value) info.StartDate = Convert.ToDateTime(dr["StartDate"]);
+                if (dr["EndDate"] != DBNull.Value) info.EndDate = Convert.ToDateTime(dr["EndDate"]);
+                if (dr["Details"] != DBNull.Value) info.Details = Convert.ToString(dr["Details"]);
+
+                return info;
+            }
+            public static ZoneInfo GetZone(long zoneID)
+            {
+                ZoneInfo info = new ZoneInfo();
+
+                string strSQL = "SELECT * FROM Zones " +
+                    " WHERE ZoneID = " + zoneID;
+                DataTable dt = RunExecuteReader(strSQL);
+                if (dt.Rows.Count > 0)
+                    info = GetZone(dt.Rows[0]);
+
+                return info;
+            }
+            public static List<ZoneInfo> GetZones(int projectID, bool computeAllParameters)
+            {
+                List<ZoneInfo> data = new List<ZoneInfo>();
+
+                string strSQL = "SELECT * FROM Zones " +
+                    " WHERE ProjectID = " + projectID +
+                    " ORDER BY ZoneTitle";
+
+                DataTable dt = RunExecuteReader(strSQL);
+                foreach (DataRow dr in dt.Rows)
+                    data.Add(GetZone(dr));
+
+                if(computeAllParameters)
+                {
+                    strSQL = "SELECT Zones.ZoneID, SUM(Tasks.RealTime) AS TotalMinutes " +
+                        " FROM Zones" +
+                        " INNER JOIN Blocks ON Zones.ZoneID = Blocks.ZoneID " +
+                        " INNER JOIN Segments ON Blocks.BlockID = Segments.BlockID " +
+                        " INNER JOIN Tasks ON Segments.SegmentID = Tasks.SegmentID " +
+                        " WHERE Zones.ProjectID = " + projectID +
+                        " GROUP BY Zones.ZoneID";
+
+                    dt = RunExecuteReader(strSQL);
+                    foreach (DataRow dr in dt.Rows)
+                    {
+                        long zoneID = Convert.ToInt32(dr["ZoneID"]);
+                        ZoneInfo zone = data.Find(i => i.ID == zoneID);
+                        if (zone != null)
+                        {
+                            float hoursSpent = Convert.ToSingle(dr["TotalMinutes"]) / 60f;
+                            zone.HoursSpent = hoursSpent;
+                            zone.RatioSpentNeeded = zone.GetRatioSpentNeeded();
+                        }
+                    }
+
+                    float overall = data.Sum(i=>i.GetEffectiveHoursNeeded());
+
+                    if(overall > 0)
+                    {
+                        foreach (ZoneInfo zone in data)
+                        {
+                            zone.Contribution = zone.RatioSpentNeeded * (zone.GetEffectiveHoursNeeded() / overall);
+                            zone.ContributionMax = zone.GetEffectiveHoursNeeded() / overall;
+                        }
+                    }
+                    
+                }
+
+                return data;
+            }
+            public static long AddUpdateZone(ZoneInfo zone)
             {
                 string SQL = "";
 
-                if (block.ID == 0)
+                if (zone.ID == 0)
                 {
-                    SQL = "SET NOCOUNT ON INSERT INTO Blocks " +
-                         " (Title,Details,ProjectID," +
-                         " HasDue,StartDate,EndDate,DueDate,StatusID," +
-                         " TheOrder,ChapterID,ClusterID," +
-                         " LocationX, LocationY, XIconID, ZOrder, IsMinimized, MinLocationX, MinLocationY, ProjectCode)" +
+                    SQL = "SET NOCOUNT ON INSERT INTO Zones " +
+                         " (ZoneTitle, HoursNeeded, IsCompleted, ProjectID, " +
+                         " StartDate, EndDate, Details " +
+                         " )" +
                          " VALUES (" +
-                         "'" + DTC.Control.InputText(block.Title, 255) + "'," +
-                         "'" + DTC.Control.InputText(block.Details, 999) + "'," +
-                         block.ProjectID + "," +
-                         Convert.ToUInt32(block.HasDue) + "," +
-                         DTC.Date.ObtainGoodDT(block.StartDate, true) + "," +
-                         DTC.Date.ObtainGoodDT(block.EndDate, true) + "," +
-                         DTC.Date.ObtainGoodDT(block.DueDate, true) + "," +
-                         (int)block.Status + "," +
-                         block.Order + "," +
-                         block.ChapterID + "," +
-                         block.ClusterID + "," +                         
-                         "'" + DTC.Control.InputText(block.ProjectCode, 50) + "'" +
-                         ") SELECT SCOPE_IDENTITY() AS BlockID";
-                    block.ID = RunExecuteScalar(SQL);
+                         "'" + DTC.Control.InputText(zone.Title, 50) + "'," +
+                         zone.HoursNeeded + "," +
+                         Convert.ToInt32(zone.IsCompleted) + "," +
+                         zone.ProjectID + "," +
+                         DTC.Date.ObtainGoodDT(zone.StartDate, true) + "," +
+                         DTC.Date.ObtainGoodDT(zone.EndDate, true) + "," +
+                         "'" + DTC.Control.InputText(zone.Details, 255) + "'" +
+                         ") SELECT SCOPE_IDENTITY() AS ZoneID";
+                    zone.ID = RunExecuteScalar(SQL);
                 }
                 else
                 {
-                    SQL = "UPDATE Blocks SET " +
-                       " Title = '" + DTC.Control.InputText(block.Title, 255) + "'," +
-                       " Details = '" + DTC.Control.InputText(block.Details, 999) + "'," +
-                       " ProjectID = " + block.ProjectID + "," +
-                       " HasDue = " + Convert.ToUInt32(block.HasDue) + "," +
-                       " StartDate = " + DTC.Date.ObtainGoodDT(block.StartDate, true) + "," +
-                       " EndDate = " + DTC.Date.ObtainGoodDT(block.EndDate, true) + "," +
-                       " DueDate = " + DTC.Date.ObtainGoodDT(block.DueDate, true) + "," +
-                       " StatusID = " + (int)block.Status + "," +
-                       " TheOrder = " + block.Order + "," +
-                       " ChapterID = " + block.ChapterID + "," +
-                       " ClusterID = " + block.ClusterID + "," +
-                       " ProjectCode = '" + DTC.Control.InputText(block.ProjectCode, 50) + "'" +
-                       " WHERE BlockID = " + block.ID;
+                    SQL = "UPDATE Zones SET " +
+                       " Title = '" + DTC.Control.InputText(zone.Title, 255) + "'," +
+                       " HoursNeeded = " + zone.HoursNeeded + "," +
+                       " IsCompleted = " + Convert.ToInt16(zone.IsCompleted) + "," +
+                       " ProjectID = " + zone.ProjectID + "," +
+                       " StartDate = " + DTC.Date.ObtainGoodDT(zone.StartDate, true) + "," +
+                       " EndDate = " + DTC.Date.ObtainGoodDT(zone.EndDate, true) + "," +
+                       " Details = '" + DTC.Control.InputText(zone.Details, 999) + "'" +
+                       " WHERE ZoneID = " + zone.ID;
                     RunNonQuery(SQL);
                 }
 
-                return block.ID;
+                return zone.ID;
             }
+            public static bool DeleteZone(long zoneID)
+            {
+                bool isOK = true;
+
+                string strSQL = "SELECT * FROM Blocks " +
+                    " WHERE ZoneID = " + zoneID;
+                DataTable dt = RunExecuteReader(strSQL);
+                if (dt.Rows.Count > 0)
+                    isOK = false;
+
+                if (isOK)
+                {
+                    strSQL = "DELETE Zones WHERE ZoneID = " + zoneID;
+                    RunNonQuery(strSQL);
+                }
+
+                return isOK;
+            }
+        }
+
+        public class Blocks
+        {
             public static BlockInfo GetBlock(DataRow dr)
             {
                 BlockInfo info = new BlockInfo();
@@ -2371,6 +2462,7 @@ namespace WebApiAzure
                 if (dr["DueDate"] != DBNull.Value) info.DueDate = Convert.ToDateTime(dr["DueDate"]);
                 if (Convert.ToInt32(dr["ProjectID"]) > 0)
                     info.ProjectID = Convert.ToInt32(dr["ProjectID"]);
+                info.ZoneID = Convert.ToInt32(dr["ZoneID"]);
                 if (dr["Details"] != DBNull.Value) info.Details = Convert.ToString(dr["Details"]);
                 info.Status = (DTC.StatusEnum)Convert.ToInt32(dr["StatusID"]);
                 info.Order = Convert.ToInt32(dr["TheOrder"]);
@@ -2379,88 +2471,6 @@ namespace WebApiAzure
                 if (dr["GoalID"] != DBNull.Value) info.RunningGoalID = Convert.ToInt32(dr["GoalID"]);
 
                 return info;
-            }
-            public static Dictionary<long, BlockInfo> GetBlocks(ProjectInfo project, bool sortByBlockName)
-            {
-                Dictionary<long, BlockInfo> dict = new Dictionary<long, BlockInfo>();
-
-                string strOrderBY = " ORDER BY Blocks.BlockID DESC";
-                if (sortByBlockName)
-                    strOrderBY = " ORDER BY Blocks.Title ASC";
-
-                string strSQL = "SELECT Blocks.*, Goals.GoalID" +
-                    " FROM Blocks " +
-                    " LEFT OUTER JOIN Goals ON Blocks.BlockID = Goals.ItemID" +
-                    " AND Goals.GoalTypeID = " + (int)GoalTypeInfo.TypeEnum.Block +
-                    " AND Goals.StatusID = " + (int)DTC.StatusEnum.Running +
-                    " WHERE Blocks.ProjectID = " + project.ID +
-                    strOrderBY;
-
-                int order = 1;
-                
-                DataTable dt = RunExecuteReader(strSQL);
-                foreach (DataRow dr in dt.Rows)
-                {
-                    BlockInfo info = GetBlock(dr);
-
-                    info.Order = order;
-                    if (!dict.ContainsKey(info.ID))
-                        dict.Add(info.ID, info);        // we're checking this, because the query may bring dublicate blocks with different gooals
-                    order++;
-                }
-                
-                return dict;
-            }
-            public static Dictionary<long, BlockInfo> GetBlocksCompleted(DateTime startDate, DateTime endDate, ProjectInfo project)
-            {
-                Dictionary<long, BlockInfo> dict = new Dictionary<long, BlockInfo>();
-                string strProject = string.Empty;
-                if (project != null)
-                    strProject = " AND Blocks.ProjectID = " + project.ID;
-
-                string strSQL = "SELECT Blocks.*, Goals.GoalID" +
-                    " FROM Blocks " +
-                    " LEFT OUTER JOIN Goals ON Blocks.BlockID = Goals.ItemID" +
-                    " AND Goals.GoalTypeID = " + (int)GoalTypeInfo.TypeEnum.Block +
-                    " AND Goals.StatusID = " + (int)DTC.StatusEnum.Running +
-                    " WHERE Blocks.StatusID = " + (int)DTC.StatusEnum.Success +
-                    " AND Blocks.EndDate >= " + DTC.Date.ObtainGoodDT(startDate, true) +
-                    " AND Blocks.EndDate <= " + DTC.Date.ObtainGoodDT(endDate, true) +
-                    strProject +
-                    " ORDER BY Blocks.EndDate DESC";
-                DataTable dt = RunExecuteReader(strSQL);
-                foreach (DataRow dr in dt.Rows)
-                {
-                    long blockID = Convert.ToInt32(dr["BlockID"]);
-                    if (!dict.ContainsKey(blockID))
-                        dict.Add(blockID, GetBlock(dr));
-                }
-                
-                return dict;
-            }
-            public static Dictionary<int, BlockInfo> GetBlocksDue(DateTime startDate, int dueDaysForward)
-            {
-                Dictionary<int, BlockInfo> dict = new Dictionary<int, BlockInfo>();
-                DateTime dueDate = DateTime.Today.AddDays(dueDaysForward);
-
-                string strSQL = "SELECT Blocks.*, Goals.GoalID" +
-                    " FROM Blocks " +
-                    " LEFT OUTER JOIN Goals ON Blocks.BlockID = Goals.ItemID" +
-                    " AND Goals.GoalTypeID = " + (int)GoalTypeInfo.TypeEnum.Block +
-                    " AND Goals.StatusID = " + (int)DTC.StatusEnum.Running +
-                    " WHERE Blocks.HasDue = 1 " +
-                    " AND Blocks.StatusID = " + (int)DTC.StatusEnum.Running +
-                    " AND Blocks.DueDate <= " + DTC.Date.ObtainGoodDT(dueDate, true) +
-                    " ORDER BY Blocks.DueDate ASC";
-                DataTable dt = RunExecuteReader(strSQL);
-                foreach (DataRow dr in dt.Rows)
-                {
-                    int blockID = Convert.ToInt32(dr["BlockID"]);
-                    if (!dict.ContainsKey(blockID))
-                        dict.Add(blockID, GetBlock(dr));
-                }
-                
-                return dict;
             }
             public static BlockInfo GetBlock(long blockID)
             {
@@ -2478,6 +2488,126 @@ namespace WebApiAzure
 
                 return info;
             }
+            public static List<BlockInfo> GetBlocks(ProjectInfo project, bool sortByBlockName)
+            {
+                List<BlockInfo> data = new List<BlockInfo>();
+
+                string strOrderBY = " ORDER BY Blocks.BlockID DESC";
+                if (sortByBlockName)
+                    strOrderBY = " ORDER BY Blocks.Title ASC";
+
+                string strSQL = "SELECT Blocks.*, Goals.GoalID" +
+                    " FROM Blocks " +
+                    " LEFT OUTER JOIN Goals ON Blocks.BlockID = Goals.ItemID" +
+                    " AND Goals.GoalTypeID = " + (int)GoalTypeInfo.TypeEnum.Block +
+                    " AND Goals.StatusID = " + (int)DTC.StatusEnum.Running +
+                    " WHERE Blocks.ProjectID = " + project.ID +
+                    strOrderBY;
+
+                int order = 1;
+
+                DataTable dt = RunExecuteReader(strSQL);
+                foreach (DataRow dr in dt.Rows)
+                {
+                    BlockInfo info = GetBlock(dr);
+
+                    info.Order = order;
+                    data.Add(info);
+                    order++;
+                }
+
+                return data;
+            }
+            public static List<BlockInfo> GetBlocksCompleted(DateTime startDate, DateTime endDate, ProjectInfo project)
+            {
+                List<BlockInfo> data = new List<BlockInfo>();
+                string strProject = string.Empty;
+                if (project != null)
+                    strProject = " AND Blocks.ProjectID = " + project.ID;
+
+                string strSQL = "SELECT Blocks.*, Goals.GoalID" +
+                    " FROM Blocks " +
+                    " LEFT OUTER JOIN Goals ON Blocks.BlockID = Goals.ItemID" +
+                    " AND Goals.GoalTypeID = " + (int)GoalTypeInfo.TypeEnum.Block +
+                    " AND Goals.StatusID = " + (int)DTC.StatusEnum.Running +
+                    " WHERE Blocks.StatusID = " + (int)DTC.StatusEnum.Success +
+                    " AND Blocks.EndDate >= " + DTC.Date.ObtainGoodDT(startDate, true) +
+                    " AND Blocks.EndDate <= " + DTC.Date.ObtainGoodDT(endDate, true) +
+                    strProject +
+                    " ORDER BY Blocks.EndDate DESC";
+                DataTable dt = RunExecuteReader(strSQL);
+                foreach (DataRow dr in dt.Rows)
+                        data.Add(GetBlock(dr));
+
+                return data;
+            }
+            public static List<BlockInfo> GetBlocksDue(DateTime startDate, int dueDaysForward)
+            {
+                List<BlockInfo> data = new List<BlockInfo>();
+                DateTime dueDate = DateTime.Today.AddDays(dueDaysForward);
+
+                string strSQL = "SELECT Blocks.*, Goals.GoalID" +
+                    " FROM Blocks " +
+                    " LEFT OUTER JOIN Goals ON Blocks.BlockID = Goals.ItemID" +
+                    " AND Goals.GoalTypeID = " + (int)GoalTypeInfo.TypeEnum.Block +
+                    " AND Goals.StatusID = " + (int)DTC.StatusEnum.Running +
+                    " WHERE Blocks.HasDue = 1 " +
+                    " AND Blocks.StatusID = " + (int)DTC.StatusEnum.Running +
+                    " AND Blocks.DueDate <= " + DTC.Date.ObtainGoodDT(dueDate, true) +
+                    " ORDER BY Blocks.DueDate ASC";
+                DataTable dt = RunExecuteReader(strSQL);
+                foreach (DataRow dr in dt.Rows)
+                        data.Add(GetBlock(dr));
+
+                return data;
+            }
+            public static long AddUpdateBlock(BlockInfo block)
+            {
+                string SQL = "";
+
+                if (block.ID == 0)
+                {
+                    SQL = "SET NOCOUNT ON INSERT INTO Blocks " +
+                         " (Title, Details, ProjectID, ZoneID, " +
+                         " HasDue, StartDate, EndDate, DueDate, StatusID," +
+                         " TheOrder, ChapterID, ProjectCode)" +
+                         " VALUES (" +
+                         "'" + DTC.Control.InputText(block.Title, 255) + "'," +
+                         "'" + DTC.Control.InputText(block.Details, 999) + "'," +
+                         block.ProjectID + "," +
+                         block.ZoneID + "," +
+                         Convert.ToInt16(block.HasDue) + "," +
+                         DTC.Date.ObtainGoodDT(block.StartDate, true) + "," +
+                         DTC.Date.ObtainGoodDT(block.EndDate, true) + "," +
+                         DTC.Date.ObtainGoodDT(block.DueDate, true) + "," +
+                         (int)block.Status + "," +
+                         block.Order + "," +
+                         block.ChapterID + "," +
+                         "'" + DTC.Control.InputText(block.ProjectCode, 50) + "'" +
+                         ") SELECT SCOPE_IDENTITY() AS BlockID";
+                    block.ID = RunExecuteScalar(SQL);
+                }
+                else
+                {
+                    SQL = "UPDATE Blocks SET " +
+                       " Title = '" + DTC.Control.InputText(block.Title, 255) + "'," +
+                       " Details = '" + DTC.Control.InputText(block.Details, 999) + "'," +
+                       " ProjectID = " + block.ProjectID + "," +
+                       " HasDue = " + Convert.ToUInt32(block.HasDue) + "," +
+                       " StartDate = " + DTC.Date.ObtainGoodDT(block.StartDate, true) + "," +
+                       " EndDate = " + DTC.Date.ObtainGoodDT(block.EndDate, true) + "," +
+                       " DueDate = " + DTC.Date.ObtainGoodDT(block.DueDate, true) + "," +
+                       " StatusID = " + (int)block.Status + "," +
+                       " TheOrder = " + block.Order + "," +
+                       " ChapterID = " + block.ChapterID + "," +
+                       " ProjectCode = '" + DTC.Control.InputText(block.ProjectCode, 50) + "'" +
+                       " WHERE BlockID = " + block.ID;
+                    RunNonQuery(SQL);
+                }
+
+                return block.ID;
+            }
+            
             public static bool DeleteBlock(long blockID)
             {
                 bool isOK = true;
@@ -2539,9 +2669,7 @@ namespace WebApiAzure
                         if (segment.HasDue)
                         {
                             if (segment.EndDate <= cutOffDate)
-                            {
                                 completeness += segment.GetSize();
-                            }
                         }
                         else
                         {
@@ -2576,10 +2704,10 @@ namespace WebApiAzure
 
                 return dict;
             }
-            public static Dictionary<long, BlockInfo> GetBlocksWithCompletionOrder(ProjectInfo project)
+            public static List<BlockInfo> GetBlocksWithCompletionOrder(ProjectInfo project)
             {
-                Dictionary<long, BlockInfo> dict = new Dictionary<long, BlockInfo>();
-                Dictionary<long, BlockInfo> blocks = GetBlocks(project, false);
+                List<BlockInfo> data = new List<BlockInfo>();
+                List<BlockInfo> blocks = GetBlocks(project, false);
 
                 string strSQL = "SELECT BlockID, Title," +
                     " (SELECT ISNULL(SUM(Size), 0) AS Expr1" +
@@ -2604,22 +2732,20 @@ namespace WebApiAzure
                 foreach (DataRow dr in dt.Rows)
                 {
                     long blockID = Convert.ToInt32(dr["BlockID"]);
-
-                    if (blocks.ContainsKey(blockID))
+                    BlockInfo info = blocks.Find(i=>i.ID == blockID);
+                    if (info != null)
                     {
-                        BlockInfo info = blocks[blockID];
                         info.Order = order;
-                        if (!dict.ContainsKey(info.ID))
-                            dict.Add(info.ID, info);
+                        data.Add(info);
+                        order++;
                     }
-
-                    order++;
+                    
                 }
 
-                return dict;
+                return data;
             }
         }
-
+         
         public class Segments
         {
             public static long AddUpdateSegment(SegmentInfo segment)
