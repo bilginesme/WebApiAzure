@@ -18,25 +18,34 @@ namespace WebApiAzure.Controllers
             return blocks;
         }
 
-        // GET: api/Blocks/5
-        public BlockInfo Get(long id)
+        [HttpGet]
+        [Route("api/Blocks/{blockID}")]
+        public BlockInfo Get(long blockID)
         {
-            return DB.GetBlock(id);
+            return DB.GetBlock(blockID);
         }
 
-        // POST: api/Blocks
-        public void Post([FromBody]string value)
+
+        [HttpPost]
+        [Route("api/Blocks/")]
+        public void Post([FromBody] BlockInfo block)
         {
+            DB.Blocks.AddUpdateBlock(block);
         }
 
-        // PUT: api/Blocks/5
-        public void Put(int id, [FromBody]string value)
+        [HttpPut]
+        [Route("api/Blocks/{blockID}")]
+        public void Put(long blockID, [FromBody] BlockInfo block)
         {
+            DB.Blocks.AddUpdateBlock(block);
         }
 
-        // DELETE: api/Blocks/5
-        public void Delete(int id)
+        [HttpDelete]
+        [Route("api/Blocks/{blockID}")]
+        public string Delete(long blockID)
         {
+            DB.Blocks.DeleteBlock(blockID);
+            return "ok";
         }
     }
 }

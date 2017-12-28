@@ -34,14 +34,14 @@ namespace WebApiAzure.Controllers
 
         [HttpPut]
         [Route("api/Segments/{segmentID}")]
-        public void Put(int segmentID, [FromBody] SegmentInfo segment)
+        public void Put(long segmentID, [FromBody] SegmentInfo segment)
         {
             DB.UpdateSegment(segment);
         }
 
         [HttpDelete]
         [Route("api/Segments/{segmentID}")]
-        public string Delete(int segmentID)
+        public string Delete(long segmentID)
         {
             DB.DeleteSegment(segmentID);
             return "ok";

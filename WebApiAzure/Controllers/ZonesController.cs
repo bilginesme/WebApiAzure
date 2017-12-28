@@ -18,9 +18,9 @@ namespace WebApiAzure.Controllers
             return zones;
         }
 
-        public BlockInfo Get(long id)
+        public ZoneInfo Get(long id)
         {
-            return DB.GetBlock(id);
+            return DB.Zones.GetZone(id);
         }
 
         public void Post([FromBody]string value)
