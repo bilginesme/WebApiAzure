@@ -8,6 +8,8 @@ namespace WebApiAzure.Models
     public class ProjectSnapshotInfo
     {
         public int ProjectID { get; set; }
+        public DTC.StatusEnum Status { get; set; }
+        public DTC.RankEnum Rank { get; set; }
         public string ProjectCode { get; set; }
         public string ProjectName { get; set; }
         public string ProjectImgName { get; set; }

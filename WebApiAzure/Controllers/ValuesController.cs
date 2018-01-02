@@ -17,7 +17,7 @@ namespace WebApiAzure.Controllers
 
         public IEnumerable<ProjectInfo> Get()
         {
-            List<ProjectInfo> projects = DB.GetProjects();
+            List<ProjectInfo> projects = DB.Projects.GetProjects();
 
             /*
             List<ProjectInfo> projects = new List<ProjectInfo>();

@@ -21,7 +21,7 @@ namespace WebApiAzure.Controllers
         {
             List<RealHoursPerWeekInfo> data = new List<RealHoursPerWeekInfo>();
             Dictionary<string, int> realMinutes = DB.GetRealMinutesPerWeek(projectID, nTop);
-            ProjectInfo project = DB.GetProject(projectID);
+            ProjectInfo project = DB.Projects.GetProject(projectID);
 
             bool isOK = false;
             WeekInfo w = new WeekInfo(DateTime.Today);

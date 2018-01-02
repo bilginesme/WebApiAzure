@@ -13,15 +13,16 @@ namespace WebApiAzure.Controllers
         // GET: api/ActionableProjects
         public IEnumerable<ProjectSnapshotInfo> Get()
         {
-            List<ProjectSnapshotInfo> projectsSnapshot = DB.GetProjectsSnapshot();
+            List<ProjectSnapshotInfo> projectsSnapshot = DB.Projects.GetProjectsSnapshot();
 
+            projectsSnapshot = projectsSnapshot.OrderByDescending(i=>i.RealTime).OrderBy(i => i.Rank).ToList();
             return projectsSnapshot;
         }
 
         // GET: api/ActionableProjects/5
         public ProjectSnapshotInfo Get(int id)
         {
-            ProjectSnapshotInfo ps = DB.GetProjectSnapshot(id);
+            ProjectSnapshotInfo ps = DB.Projects.GetProjectSnapshot(id);
             return ps;
         }
 

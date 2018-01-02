@@ -8,10 +8,7 @@ namespace WebApiAzure.Models
     public class ProjectInfo : ICloneable
     {
         #region Enums
-        public enum ShowHowManyTasksEnum
-        {
-            All = -1, None = 0, Three = 3, Five = 5, Ten = 10
-        }
+        public enum ShowHowManyTasksEnum { All = -1, None = 0, Three = 3, Five = 5, Ten = 10 }
         #endregion
 
         #region Private Members
@@ -28,6 +25,7 @@ namespace WebApiAzure.Models
         DateTime dueDate;
         DateTime endDate;
         DTC.StatusEnum status;
+        DTC.RankEnum rank;
         int order;
         ShowHowManyTasksEnum showHowManyTasks;
         DTC.RangeEnum monitoringFrequency;
@@ -50,6 +48,7 @@ namespace WebApiAzure.Models
             dueDate = DateTime.MaxValue;
             endDate = DateTime.MaxValue;
             status = DTC.StatusEnum.Running;
+            rank = DTC.RankEnum.NoRank;
             order = 0;
             showHowManyTasks = ShowHowManyTasksEnum.All;
             monitoringFrequency = DTC.RangeEnum.Month;
@@ -126,6 +125,7 @@ namespace WebApiAzure.Models
         public DateTime DueDate { get { return dueDate; } set { dueDate = value; }}
         public DateTime EndDate { get { return endDate; } set { endDate = value; }}
         public DTC.StatusEnum Status { get { return status; } set { status = value; }}
+        public DTC.RankEnum Rank { get { return rank; } set { rank = value; } }
         public int Order { get { return order; } set { order = value; }}
         public ShowHowManyTasksEnum ShowHowManyTasks { get { return showHowManyTasks; } set { showHowManyTasks = value; }}
         public DTC.RangeEnum MonitoringFrequency { get { return monitoringFrequency; } set { monitoringFrequency = value; }}

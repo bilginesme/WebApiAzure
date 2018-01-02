@@ -76,326 +76,8 @@ namespace WebApiAzure
             return result;
         }
 
-        public static List<ProjectInfo> GetProjects()
-        {
-            List<ProjectInfo> data = new List<ProjectInfo>();
-
-            string strSQL = "SELECT * FROM Projects";
-            DataTable dt = RunExecuteReader(strSQL);
-            foreach (DataRow dr in dt.Rows)
-                data.Add(GetProject(dr));
-
-            return data;
-        }
-        public static ProjectInfo GetProject(int projectID)
-        {
-            string strSQL = "SELECT * " +
-            " FROM Projects " +
-            " WHERE ProjectID = " + projectID;
-
-            DataTable dt = RunExecuteReader(strSQL);
-            if (dt.Rows.Count == 1)
-                return GetProject(dt.Rows[0]);
-            else
-                return null;
-        }
-        private static ProjectInfo GetProject(DataRow dr)
-        {
-            ProjectInfo project = new ProjectInfo();
-
-            project.ID = Convert.ToInt32(dr["ProjectID"]);
-            project.Name = Convert.ToString(dr["ProjectName"]);
-            project.Code = Convert.ToString(dr["ProjectCode"]);
-            project.StartDate = Convert.ToDateTime(dr["StartDate"]);
-
-            return project;
-        }
-        public static List<ProjectInfo> GetActionableProjects()
-        {
-            List<ProjectInfo> data = new List<Models.ProjectInfo>();
-
-            string strSQL = "SELECT * FROM Projects WHERE IsActionable = 1 AND StatusID = 1";
-            DataTable dt = RunExecuteReader(strSQL);
-
-            foreach (DataRow dr in dt.Rows)
-                data.Add(GetProject(dr));
-
-            return data;
-        }
-        public static List<ProjectSnapshotInfo> GetProjectsSnapshot()
-        {
-            List<ProjectSnapshotInfo> data = new List<ProjectSnapshotInfo>();
-            DateTime dtTreshold = DateTime.Now.AddDays(-30);
-
-            string strSQL = "SELECT Projects.ProjectID, Projects.ProjectName, Projects.ProjectCode, SUM(Tasks.RealTime) AS RealTimeTotal, " +
-                " ProjectGroups.ProjectGroupCode, Projects.DueDate, Projects.StartDate, ProjectImgName " +
-                " FROM Projects " +
-                " INNER JOIN Tasks ON Projects.ProjectID = Tasks.ProjectID " +
-                " INNER JOIN ProjectGroups ON Projects.ProjectGroupID = ProjectGroups.ProjectGroupID " +
-                " WHERE Projects.IsActionable = 1 " +
-                " AND Projects.StatusID = 1 " +
-                " AND Tasks.TaskDate >= " + DTC.ObtainGoodDT(dtTreshold, false) +
-                " GROUP BY Projects.ProjectID, Projects.ProjectName, Projects.ProjectCode, " +
-                " ProjectGroups.ProjectGroupCode, Projects.DueDate, Projects.StartDate, ProjectImgName " +
-                " ORDER BY RealTimeTotal DESC";
-            DataTable dt = RunExecuteReader(strSQL);
-
-            foreach (DataRow dr in dt.Rows)
-            {
-                DateTime dtStartDate = Convert.ToDateTime(dr["StartDate"]);
-                DateTime dtDueDate = Convert.ToDateTime(dr["DueDate"]);
-
-                ProjectSnapshotInfo projectSnapshot = new ProjectSnapshotInfo();
-                projectSnapshot.ProjectID = Convert.ToInt32(dr["ProjectID"]);
-                projectSnapshot.ProjectCode = Convert.ToString(dr["ProjectCode"]);
-                projectSnapshot.ProjectName = Convert.ToString(dr["ProjectName"]);
-                projectSnapshot.ProjectGroupCode = Convert.ToString(dr["ProjectGroupCode"]);
-                projectSnapshot.RealTime = Convert.ToSingle(dr["RealTimeTotal"]);
-                projectSnapshot.DueDate = DTC.GetSmartDateTime(dtDueDate, false);
-                projectSnapshot.StartDate = DTC.GetSmartDateTime(dtStartDate, false);
-                projectSnapshot.ProjectImgName = Convert.ToString(dr["ProjectImgName"]);
-                projectSnapshot.PercentCompleted = 67;
-
-                projectSnapshot.NumDaysRemaining = 0;
-                if (dtDueDate > DateTime.Today)
-                    projectSnapshot.NumDaysRemaining = (int)dtDueDate.Subtract(DateTime.Today).TotalDays;
-
-                data.Add(projectSnapshot);
-            }
-
-            List<WeekInfo> weeks = new List<WebApiAzure.WeekInfo>();
-            weeks.Add(new WeekInfo(DateTime.Today));
-            weeks.Add(DTC.GetPreviousWeek(weeks[0]));
-            weeks.Add(DTC.GetPreviousWeek(weeks[1]));
-            weeks.Add(DTC.GetPreviousWeek(weeks[2]));
-
-            for (int w = 0; w < weeks.Count; w++)
-            {
-                strSQL = "SELECT Projects.ProjectID, SUM(Tasks.RealTime) AS RealTimeTotal" +
-                " FROM Projects " +
-                " INNER JOIN Tasks ON Projects.ProjectID = Tasks.ProjectID" +
-                " WHERE Projects.IsActionable = 1  AND Projects.StatusID = 1" +
-                " AND Tasks.TaskDate >= " + DTC.ObtainGoodDT(weeks[w].StartDate, true) +
-                " AND Tasks.TaskDate <= " + DTC.ObtainGoodDT(weeks[w].EndDate, true) +
-                " GROUP BY Projects.ProjectID";
-                dt = RunExecuteReader(strSQL);
-                foreach (DataRow dr in dt.Rows)
-                {
-                    long projectID = Convert.ToInt32(dr["ProjectID"]);
-                    float realTime = Convert.ToSingle(dr["RealTimeTotal"]);
-
-                    if (data.Exists(i => i.ProjectID == projectID))
-                    {
-                        ProjectSnapshotInfo ps = data.Find(i => i.ProjectID == projectID);
-
-                        if (w == 0) ps.W0 = realTime;
-                        else if (w == 1) ps.W1 = realTime;
-                        else if (w == 2) ps.W2 = realTime;
-                        else if (w == 3) ps.W3 = realTime;
-                    }
-                }
-            }
-
-            List<long> projectIDs = new List<long>();
-            foreach (ProjectInfo project in GetActionableProjects())
-            {
-                projectIDs.Add(project.ID);
-                if (!data.Exists(i => i.ProjectID == project.ID))
-                {
-                    ProjectSnapshotInfo ps = DB.GetProjectSnapshot(project.ID);
-                    ps.RealTime = 0;
-                    data.Add(ps);
-                }
-            }
-
-            Dictionary<long, int> projectPerformances = GetProjectPerformances(projectIDs);
-            foreach (int projectID in projectPerformances.Keys)
-            {
-                ProjectSnapshotInfo ps = data.Find(i => i.ProjectID == projectID);
-                if (ps != null)
-                    ps.PercentCompleted = projectPerformances[projectID];
-            }
-
-            Dictionary<long, float> projectEternalTotalTimes = GetProjectEternalTotalTimes(projectIDs);
-            foreach (int projectID in projectEternalTotalTimes.Keys)
-            {
-                ProjectSnapshotInfo ps = data.Find(i => i.ProjectID == projectID);
-                if (ps != null)
-                    ps.EternalTotalTime = projectEternalTotalTimes[projectID];
-            }
-
-            return data;
-        }
-        public static ProjectSnapshotInfo GetProjectSnapshot(int projectID)
-        {
-            ProjectSnapshotInfo projectSnapshot = new ProjectSnapshotInfo();
-
-            string strSQL = "SELECT Projects.ProjectID, Projects.ProjectName, Projects.ProjectCode, SUM(Tasks.RealTime) AS RealTimeTotal, " +
-                " ProjectGroups.ProjectGroupCode, Projects.DueDate, Projects.StartDate, ProjectImgName " +
-                " FROM Projects " +
-                " INNER JOIN Tasks ON Projects.ProjectID = Tasks.ProjectID " +
-                " INNER JOIN ProjectGroups ON Projects.ProjectGroupID = ProjectGroups.ProjectGroupID " +
-                " WHERE Projects.ProjectID = " + projectID +
-                " GROUP BY Projects.ProjectID, Projects.ProjectName, Projects.ProjectCode, " +
-                " ProjectGroups.ProjectGroupCode, Projects.DueDate, Projects.StartDate, ProjectImgName ";
-            DataTable dt = RunExecuteReader(strSQL);
-
-            if (dt.Rows.Count == 1)
-            {
-                DataRow dr = dt.Rows[0];
-                DateTime dtDueDate = Convert.ToDateTime(dr["DueDate"]);
-                DateTime dtStartDate = Convert.ToDateTime(dr["StartDate"]);
-
-                projectSnapshot.ProjectID = Convert.ToInt32(dr["ProjectID"]);
-                projectSnapshot.ProjectCode = Convert.ToString(dr["ProjectCode"]);
-                projectSnapshot.ProjectName = Convert.ToString(dr["ProjectName"]);
-                projectSnapshot.ProjectGroupCode = Convert.ToString(dr["ProjectGroupCode"]);
-                projectSnapshot.RealTime = Convert.ToSingle(dr["RealTimeTotal"]);
-                projectSnapshot.StartDate = DTC.GetSmartDateTime(dtStartDate, false);
-                projectSnapshot.DueDate = DTC.GetSmartDateTime(dtDueDate, false);
-                projectSnapshot.ProjectImgName = Convert.ToString(dr["ProjectImgName"]);
-                projectSnapshot.PercentCompleted = GetProjectPerformance(projectID);
-
-                projectSnapshot.NumDaysRemaining = 0;
-                if (dtDueDate > DateTime.Today)
-                    projectSnapshot.NumDaysRemaining = (int)dtDueDate.Subtract(DateTime.Today).TotalDays;
-            }
-
-            List<WeekInfo> weeks = new List<WebApiAzure.WeekInfo>();
-            weeks.Add(new WeekInfo(DateTime.Today));
-            weeks.Add(DTC.GetPreviousWeek(weeks[0]));
-            weeks.Add(DTC.GetPreviousWeek(weeks[1]));
-            weeks.Add(DTC.GetPreviousWeek(weeks[2]));
-
-            for (int w = 0; w < weeks.Count; w++)
-            {
-                strSQL = "SELECT SUM(Tasks.RealTime) AS RealTimeTotal" +
-                " FROM Projects " +
-                " INNER JOIN Tasks ON Projects.ProjectID = Tasks.ProjectID" +
-                " WHERE Projects.ProjectID = " + projectID +
-                " AND Tasks.TaskDate >= " + DTC.ObtainGoodDT(weeks[w].StartDate, true) +
-                " AND Tasks.TaskDate <= " + DTC.ObtainGoodDT(weeks[w].EndDate, true);
-                dt = RunExecuteReader(strSQL);
-                foreach (DataRow dr in dt.Rows)
-                {
-                    float realTime = 0;
-                    if (DTC.IsNumeric(dr["RealTimeTotal"]))
-                        realTime = Convert.ToSingle(dr["RealTimeTotal"]);
-
-                    if (w == 0) projectSnapshot.W0 = realTime;
-                    else if (w == 1) projectSnapshot.W1 = realTime;
-                    else if (w == 2) projectSnapshot.W2 = realTime;
-                    else if (w == 3) projectSnapshot.W3 = realTime;
-                }
-            }
-
-            projectSnapshot.EternalTotalTime = GetProjectEternalTotalTimes(projectID);
-
-            return projectSnapshot;
-        }
-        public static int GetProjectPerformance(int projectID)
-        {
-            int result = 0;
-            string strSQL = "SELECT SUM(Segments.Size) AS TotalSize, Segments.StatusID " +
-                " FROM Segments " +
-                " INNER JOIN Blocks ON Segments.BlockID = Blocks.BlockID " +
-                " WHERE Blocks.ProjectID = " + projectID +
-                " GROUP BY Segments.StatusID";
-            DataTable dt = RunExecuteReader(strSQL);
-
-            float sizeTotal = 0;
-            float sizeCompleted = 0;
-
-            foreach (DataRow dr in dt.Rows)
-            {
-                sizeTotal += Convert.ToSingle(dr["TotalSize"]);
-                DTC.StatusEnum status = (DTC.StatusEnum)Convert.ToInt16(dr["StatusID"]);
-                if (status != DTC.StatusEnum.Running)
-                    sizeCompleted += Convert.ToSingle(dr["TotalSize"]);
-            }
-
-            if (sizeTotal > 0)
-                result = (int)Math.Round(100f * sizeCompleted / sizeTotal);
-
-            return result;
-        }
-        public static Dictionary<long, int> GetProjectPerformances(List<long> projectIDs)
-        {
-            Dictionary<long, int> data = new Dictionary<long, int>();
-
-            string strSQLProjectIDs = "WHERE Blocks.ProjectID = 0 ";
-            foreach (int projectID in projectIDs)
-                strSQLProjectIDs += " OR Blocks.ProjectID = " + projectID;
-
-            string strSQL = "SELECT Blocks.ProjectID, Segments.StatusID, SUM(Segments.Size) AS TotalSize " +
-                " FROM Segments  INNER JOIN Blocks ON Segments.BlockID = Blocks.BlockID " +
-                strSQLProjectIDs +
-                " GROUP BY Blocks.ProjectID, Segments.StatusID " +
-                " ORDER BY Blocks.ProjectID, Segments.StatusID";
-            DataTable dt = RunExecuteReader(strSQL);
-
-            foreach (int projectID in projectIDs)
-            {
-                float sizeTotal = 0;
-                float sizeCompleted = 0;
-                int percentage = 0;
-
-                foreach (DataRow dr in dt.Rows)
-                {
-                    if (Convert.ToInt32(dr["ProjectID"]) == projectID)
-                    {
-                        sizeTotal += Convert.ToSingle(dr["TotalSize"]);
-                        DTC.StatusEnum status = (DTC.StatusEnum)Convert.ToInt16(dr["StatusID"]);
-                        if (status != DTC.StatusEnum.Running)
-                            sizeCompleted += Convert.ToSingle(dr["TotalSize"]);
-                    }
-
-                    if (sizeTotal > 0)
-                        percentage = (int)Math.Round(100f * sizeCompleted / sizeTotal);
-                }
-
-                data.Add(projectID, percentage);
-            }
-
-            return data;
-        }
-        public static Dictionary<long, float> GetProjectEternalTotalTimes(List<long> projectIDs)
-        {
-            Dictionary<long, float> data = new Dictionary<long, float>();
-
-            string strSQL = "SELECT SUM(Tasks.RealTime) AS EternalTotalTime, Tasks.ProjectID " +
-                " FROM Tasks " +
-                " INNER JOIN Projects ON Tasks.ProjectID = Projects.ProjectID " +
-                " WHERE Projects.IsActionable = 1 AND Projects.StatusID = 1 " +
-                " GROUP BY Tasks.ProjectID";
-            DataTable dt = RunExecuteReader(strSQL);
-
-            foreach (long projectID in projectIDs)
-                data.Add(projectID, 0f);
-
-            foreach (DataRow dr in dt.Rows)
-            {
-                long projectID = Convert.ToInt32(dr["ProjectID"]);
-
-                if (data.ContainsKey(projectID))
-                    data[projectID] = Convert.ToSingle(dr["EternalTotalTime"]);
-            }
-
-            return data;
-        }
-        public static float GetProjectEternalTotalTimes(long projectID)
-        {
-            float result = 0;
-
-            List<long> list = new List<long>();
-            list.Add(projectID);
-
-            Dictionary<long, float> data = GetProjectEternalTotalTimes(list);
-            if (data.ContainsKey(projectID))
-                result = data[projectID];
-
-            return result;
-        }
+        
+        
 
         public static List<BlockInfo> GetBlocks(int projectID)
         {
@@ -708,7 +390,7 @@ namespace WebApiAzure
         public static List<WeekInfo> GetWeeks(int projectID, int nTop)
         {
             List<WeekInfo> data = new List<WeekInfo>();
-            ProjectInfo project = DB.GetProject(projectID);
+            ProjectInfo project = DB.Projects.GetProject(projectID);
 
             bool isOK = false;
             WeekInfo week = new WeekInfo(DateTime.Today);
@@ -1727,7 +1409,7 @@ namespace WebApiAzure
                 {
                     SQL = "SET NOCOUNT ON INSERT INTO Projects " +
                           " (ProjectCode, ProjectName, ProjectGroupID, ProjectDetails, " +
-                          " StatusID, IsActive, IsCompletable, IsActionable, " +
+                          " StatusID, RankID, IsActive, IsCompletable, IsActionable, " +
                           " StartDate, EndDate, DueDate, TheOrder, Leverage, " +
                           " PlannerSizeWidth, PlannerSizeHeight, XIconID, LocationX, LocationY," +
                           " IsMinimized, MinLocationX, MinLocationY, ZOrder, ShowHowManyTasks, MonitoringFrequency)" +
@@ -1736,10 +1418,11 @@ namespace WebApiAzure
                           "'" + DTC.Control.InputText(project.Name, 25) + "'," +
                           project.ProjectGroupID + "," +
                           "'" + DTC.Control.InputText(project.Details, 255) + "'," +
-                          Convert.ToInt32(project.Status) + "," +
-                          Convert.ToInt32(project.IsActive) + "," +
-                          Convert.ToInt32(project.IsCompletable) + "," +
-                          Convert.ToInt32(project.IsActionable) + "," +
+                          Convert.ToInt16(project.Status) + "," +
+                          Convert.ToInt16(project.Rank) + "," +
+                          Convert.ToInt16(project.IsActive) + "," +
+                          Convert.ToInt16(project.IsCompletable) + "," +
+                          Convert.ToInt16(project.IsActionable) + "," +
                           DTC.Date.ObtainGoodDT(project.StartDate, true) + "," +
                           DTC.Date.ObtainGoodDT(project.EndDate, true) + "," +
                           DTC.Date.ObtainGoodDT(project.DueDate, true) + "," +
@@ -1756,10 +1439,11 @@ namespace WebApiAzure
                         " ProjectName = '" + DTC.Control.InputText(project.Name, 25) + "'," +
                         " ProjectGroupID = " + project.ProjectGroupID + "," +
                         " ProjectDetails = '" + DTC.Control.InputText(project.Details, 255) + "'," +
-                        " StatusID = " + Convert.ToInt32(project.Status) + "," +
-                        " IsActive = " + Convert.ToInt32(project.IsActive) + "," +
-                        " IsCompletable = " + Convert.ToInt32(project.IsCompletable) + "," +
-                        " IsActionable = " + Convert.ToInt32(project.IsActionable) + "," +
+                        " StatusID = " + Convert.ToInt16(project.Status) + "," +
+                        " RankID = " + Convert.ToInt16(project.Rank) + "," +
+                        " IsActive = " + Convert.ToInt16(project.IsActive) + "," +
+                        " IsCompletable = " + Convert.ToInt16(project.IsCompletable) + "," +
+                        " IsActionable = " + Convert.ToInt16(project.IsActionable) + "," +
                         " StartDate = " + DTC.Date.ObtainGoodDT(project.StartDate, true) + "," +
                         " EndDate = " + DTC.Date.ObtainGoodDT(project.EndDate, true) + "," +
                         " DueDate = " + DTC.Date.ObtainGoodDT(project.DueDate, true) + "," +
@@ -1788,12 +1472,28 @@ namespace WebApiAzure
                 if (dr["DueDate"] != DBNull.Value) info.DueDate = Convert.ToDateTime(dr["DueDate"]);
                 if (dr["EndDate"] != DBNull.Value) info.EndDate = Convert.ToDateTime(dr["EndDate"]);
                 info.ProjectGroupID = Convert.ToInt16(dr["ProjectGroupID"]);
-                info.Status = (DTC.StatusEnum)Convert.ToInt32(dr["StatusID"]);
+                info.Status = (DTC.StatusEnum)Convert.ToInt16(dr["StatusID"]);
+                info.Rank = (DTC.RankEnum)Convert.ToInt16(dr["RankID"]);
                 info.Order = Convert.ToInt32(dr["TheOrder"]);
                 info.ShowHowManyTasks = (ProjectInfo.ShowHowManyTasksEnum)Convert.ToInt16(dr["ShowHowManyTasks"]);
                 info.MonitoringFrequency = (DTC.RangeEnum)Convert.ToInt16(dr["MonitoringFrequency"]);
 
                 return info;
+            }
+            public static List<ProjectInfo> GetActionableProjects()
+            {
+                List<ProjectInfo> data = new List<Models.ProjectInfo>();
+
+                string strSQL = "SELECT * FROM Projects " +
+                    " WHERE IsActionable = 1 " +
+                    " AND StatusID = 1" +
+                    " AND RankID > 0";
+                DataTable dt = RunExecuteReader(strSQL);
+
+                foreach (DataRow dr in dt.Rows)
+                    data.Add(GetProject(dr));
+
+                return data;
             }
             public static ProjectInfo GetProject(int projectID)
             {
@@ -1808,14 +1508,14 @@ namespace WebApiAzure
 
                 return info;
             }
-            public static Dictionary<int, ProjectInfo> GetProjects()
+            public static List<ProjectInfo> GetProjects()
             {
                 string strSQL = "SELECT * " +
                      " FROM Projects " +
                      " ORDER BY TheOrder";
                 return GetProjects(strSQL);
             }
-            public static Dictionary<int, ProjectInfo> GetProjectsCompleted(DateTime startDate, DateTime endDate)
+            public static List<ProjectInfo> GetProjectsCompleted(DateTime startDate, DateTime endDate)
             {
                 string strSQL = "SELECT * " +
                      " FROM Projects " +
@@ -1825,14 +1525,293 @@ namespace WebApiAzure
                      " ORDER BY EndDate DESC";
                 return GetProjects(strSQL);
             }
-            public static Dictionary<int, ProjectInfo> GetProjects(string strSQL)
+            public static List<ProjectSnapshotInfo> GetProjectsSnapshot()
             {
-                Dictionary<int, ProjectInfo> dict = new Dictionary<int, ProjectInfo>();
+                List<ProjectSnapshotInfo> data = new List<ProjectSnapshotInfo>();
+                DateTime dtTreshold = DateTime.Now.AddDays(-30);
+
+                string strSQL = "SELECT Projects.ProjectID, Projects.StatusID, Projects.RankID, Projects.ProjectName, Projects.ProjectCode, SUM(Tasks.RealTime) AS RealTimeTotal, " +
+                    " ProjectGroups.ProjectGroupCode, Projects.DueDate, Projects.StartDate, ProjectImgName " +
+                    " FROM Projects " +
+                    " INNER JOIN Tasks ON Projects.ProjectID = Tasks.ProjectID " +
+                    " INNER JOIN ProjectGroups ON Projects.ProjectGroupID = ProjectGroups.ProjectGroupID " +
+                    " WHERE Projects.IsActionable = 1 " +
+                    " AND Projects.StatusID = 1 " +
+                    " AND Projects.RankID > 0 " +
+                    " AND Tasks.TaskDate >= " + DTC.ObtainGoodDT(dtTreshold, false) +
+                    " GROUP BY Projects.ProjectID, Projects.StatusID, Projects.RankID, Projects.ProjectName, Projects.ProjectCode, " +
+                    " ProjectGroups.ProjectGroupCode, Projects.DueDate, Projects.StartDate, ProjectImgName ";
+                DataTable dt = RunExecuteReader(strSQL);
+
+                foreach (DataRow dr in dt.Rows)
+                {
+                    DateTime dtStartDate = Convert.ToDateTime(dr["StartDate"]);
+                    DateTime dtDueDate = Convert.ToDateTime(dr["DueDate"]);
+
+                    ProjectSnapshotInfo projectSnapshot = new ProjectSnapshotInfo();
+                    projectSnapshot.ProjectID = Convert.ToInt32(dr["ProjectID"]);
+                    projectSnapshot.Status = (DTC.StatusEnum) Convert.ToInt16(dr["StatusID"]);
+                    projectSnapshot.Rank = (DTC.RankEnum)Convert.ToInt16(dr["RankID"]);
+                    projectSnapshot.ProjectCode = Convert.ToString(dr["ProjectCode"]);
+                    projectSnapshot.ProjectName = Convert.ToString(dr["ProjectName"]);
+                    projectSnapshot.ProjectGroupCode = Convert.ToString(dr["ProjectGroupCode"]);
+                    projectSnapshot.RealTime = Convert.ToSingle(dr["RealTimeTotal"]);
+                    projectSnapshot.DueDate = DTC.GetSmartDateTime(dtDueDate, false);
+                    projectSnapshot.StartDate = DTC.GetSmartDateTime(dtStartDate, false);
+                    projectSnapshot.ProjectImgName = Convert.ToString(dr["ProjectImgName"]);
+                    projectSnapshot.PercentCompleted = 67;
+
+                    projectSnapshot.NumDaysRemaining = 0;
+                    if (dtDueDate > DateTime.Today)
+                        projectSnapshot.NumDaysRemaining = (int)dtDueDate.Subtract(DateTime.Today).TotalDays;
+
+                    data.Add(projectSnapshot);
+                }
+
+                List<WeekInfo> weeks = new List<WebApiAzure.WeekInfo>();
+                weeks.Add(new WeekInfo(DateTime.Today));
+                weeks.Add(DTC.GetPreviousWeek(weeks[0]));
+                weeks.Add(DTC.GetPreviousWeek(weeks[1]));
+                weeks.Add(DTC.GetPreviousWeek(weeks[2]));
+
+                for (int w = 0; w < weeks.Count; w++)
+                {
+                    strSQL = "SELECT Projects.ProjectID, SUM(Tasks.RealTime) AS RealTimeTotal" +
+                    " FROM Projects " +
+                    " INNER JOIN Tasks ON Projects.ProjectID = Tasks.ProjectID" +
+                    " WHERE Projects.IsActionable = 1  AND Projects.StatusID = 1" +
+                    " AND Tasks.TaskDate >= " + DTC.ObtainGoodDT(weeks[w].StartDate, true) +
+                    " AND Tasks.TaskDate <= " + DTC.ObtainGoodDT(weeks[w].EndDate, true) +
+                    " GROUP BY Projects.ProjectID";
+                    dt = RunExecuteReader(strSQL);
+                    foreach (DataRow dr in dt.Rows)
+                    {
+                        long projectID = Convert.ToInt32(dr["ProjectID"]);
+                        float realTime = Convert.ToSingle(dr["RealTimeTotal"]);
+
+                        if (data.Exists(i => i.ProjectID == projectID))
+                        {
+                            ProjectSnapshotInfo ps = data.Find(i => i.ProjectID == projectID);
+
+                            if (w == 0) ps.W0 = realTime;
+                            else if (w == 1) ps.W1 = realTime;
+                            else if (w == 2) ps.W2 = realTime;
+                            else if (w == 3) ps.W3 = realTime;
+                        }
+                    }
+                }
+
+                List<long> projectIDs = new List<long>();
+                foreach (ProjectInfo project in GetActionableProjects())
+                {
+                    projectIDs.Add(project.ID);
+                    if (!data.Exists(i => i.ProjectID == project.ID))
+                    {
+                        ProjectSnapshotInfo ps = DB.Projects.GetProjectSnapshot(project.ID);
+                        ps.RealTime = 0;
+                        data.Add(ps);
+                    }
+                }
+
+                Dictionary<long, int> projectPerformances = GetProjectPerformances(projectIDs);
+                foreach (int projectID in projectPerformances.Keys)
+                {
+                    ProjectSnapshotInfo ps = data.Find(i => i.ProjectID == projectID);
+                    if (ps != null)
+                        ps.PercentCompleted = projectPerformances[projectID];
+                }
+
+                Dictionary<long, float> projectEternalTotalTimes = GetProjectEternalTotalTimes(projectIDs);
+                foreach (int projectID in projectEternalTotalTimes.Keys)
+                {
+                    ProjectSnapshotInfo ps = data.Find(i => i.ProjectID == projectID);
+                    if (ps != null)
+                        ps.EternalTotalTime = projectEternalTotalTimes[projectID];
+                }
+
+                return data;
+            }
+            public static ProjectSnapshotInfo GetProjectSnapshot(int projectID)
+            {
+                ProjectSnapshotInfo projectSnapshot = new ProjectSnapshotInfo();
+
+                string strSQL = "SELECT Projects.ProjectID, Projects.StatusID, Projects.RankID, Projects.ProjectName, Projects.ProjectCode, " +
+                    " SUM(Tasks.RealTime) AS RealTimeTotal, " +
+                    " ProjectGroups.ProjectGroupCode, Projects.DueDate, Projects.StartDate, ProjectImgName " +
+                    " FROM Projects " +
+                    " INNER JOIN Tasks ON Projects.ProjectID = Tasks.ProjectID " +
+                    " INNER JOIN ProjectGroups ON Projects.ProjectGroupID = ProjectGroups.ProjectGroupID " +
+                    " WHERE Projects.ProjectID = " + projectID +
+                    " GROUP BY Projects.ProjectID, Projects.StatusID, Projects.RankID, Projects.ProjectName, Projects.ProjectCode, " +
+                    " ProjectGroups.ProjectGroupCode, Projects.DueDate, Projects.StartDate, ProjectImgName ";
+                DataTable dt = RunExecuteReader(strSQL);
+
+                if (dt.Rows.Count == 1)
+                {
+                    DataRow dr = dt.Rows[0];
+                    DateTime dtDueDate = Convert.ToDateTime(dr["DueDate"]);
+                    DateTime dtStartDate = Convert.ToDateTime(dr["StartDate"]);
+
+                    projectSnapshot.ProjectID = Convert.ToInt32(dr["ProjectID"]);
+                    projectSnapshot.Status = (DTC.StatusEnum)Convert.ToInt16(dr["StatusID"]);
+                    projectSnapshot.Rank = (DTC.RankEnum)Convert.ToInt16(dr["RankID"]);
+                    projectSnapshot.ProjectCode = Convert.ToString(dr["ProjectCode"]);
+                    projectSnapshot.ProjectName = Convert.ToString(dr["ProjectName"]);
+                    projectSnapshot.ProjectGroupCode = Convert.ToString(dr["ProjectGroupCode"]);
+                    projectSnapshot.RealTime = Convert.ToSingle(dr["RealTimeTotal"]);
+                    projectSnapshot.StartDate = DTC.GetSmartDateTime(dtStartDate, false);
+                    projectSnapshot.DueDate = DTC.GetSmartDateTime(dtDueDate, false);
+                    projectSnapshot.ProjectImgName = Convert.ToString(dr["ProjectImgName"]);
+                    projectSnapshot.PercentCompleted = GetProjectPerformance(projectID);
+
+                    projectSnapshot.NumDaysRemaining = 0;
+                    if (dtDueDate > DateTime.Today)
+                        projectSnapshot.NumDaysRemaining = (int)dtDueDate.Subtract(DateTime.Today).TotalDays;
+                }
+
+                List<WeekInfo> weeks = new List<WebApiAzure.WeekInfo>();
+                weeks.Add(new WeekInfo(DateTime.Today));
+                weeks.Add(DTC.GetPreviousWeek(weeks[0]));
+                weeks.Add(DTC.GetPreviousWeek(weeks[1]));
+                weeks.Add(DTC.GetPreviousWeek(weeks[2]));
+
+                for (int w = 0; w < weeks.Count; w++)
+                {
+                    strSQL = "SELECT SUM(Tasks.RealTime) AS RealTimeTotal" +
+                    " FROM Projects " +
+                    " INNER JOIN Tasks ON Projects.ProjectID = Tasks.ProjectID" +
+                    " WHERE Projects.ProjectID = " + projectID +
+                    " AND Tasks.TaskDate >= " + DTC.ObtainGoodDT(weeks[w].StartDate, true) +
+                    " AND Tasks.TaskDate <= " + DTC.ObtainGoodDT(weeks[w].EndDate, true);
+                    dt = RunExecuteReader(strSQL);
+                    foreach (DataRow dr in dt.Rows)
+                    {
+                        float realTime = 0;
+                        if (DTC.IsNumeric(dr["RealTimeTotal"]))
+                            realTime = Convert.ToSingle(dr["RealTimeTotal"]);
+
+                        if (w == 0) projectSnapshot.W0 = realTime;
+                        else if (w == 1) projectSnapshot.W1 = realTime;
+                        else if (w == 2) projectSnapshot.W2 = realTime;
+                        else if (w == 3) projectSnapshot.W3 = realTime;
+                    }
+                }
+
+                projectSnapshot.EternalTotalTime = GetProjectEternalTotalTimes(projectID);
+
+                return projectSnapshot;
+            }
+            public static int GetProjectPerformance(int projectID)
+            {
+                int result = 0;
+                string strSQL = "SELECT SUM(Segments.Size) AS TotalSize, Segments.StatusID " +
+                    " FROM Segments " +
+                    " INNER JOIN Blocks ON Segments.BlockID = Blocks.BlockID " +
+                    " WHERE Blocks.ProjectID = " + projectID +
+                    " GROUP BY Segments.StatusID";
+                DataTable dt = RunExecuteReader(strSQL);
+
+                float sizeTotal = 0;
+                float sizeCompleted = 0;
+
+                foreach (DataRow dr in dt.Rows)
+                {
+                    sizeTotal += Convert.ToSingle(dr["TotalSize"]);
+                    DTC.StatusEnum status = (DTC.StatusEnum)Convert.ToInt16(dr["StatusID"]);
+                    if (status != DTC.StatusEnum.Running)
+                        sizeCompleted += Convert.ToSingle(dr["TotalSize"]);
+                }
+
+                if (sizeTotal > 0)
+                    result = (int)Math.Round(100f * sizeCompleted / sizeTotal);
+
+                return result;
+            }
+            public static Dictionary<long, int> GetProjectPerformances(List<long> projectIDs)
+            {
+                Dictionary<long, int> data = new Dictionary<long, int>();
+
+                string strSQLProjectIDs = "WHERE Blocks.ProjectID = 0 ";
+                foreach (int projectID in projectIDs)
+                    strSQLProjectIDs += " OR Blocks.ProjectID = " + projectID;
+
+                string strSQL = "SELECT Blocks.ProjectID, Segments.StatusID, SUM(Segments.Size) AS TotalSize " +
+                    " FROM Segments  INNER JOIN Blocks ON Segments.BlockID = Blocks.BlockID " +
+                    strSQLProjectIDs +
+                    " GROUP BY Blocks.ProjectID, Segments.StatusID " +
+                    " ORDER BY Blocks.ProjectID, Segments.StatusID";
+                DataTable dt = RunExecuteReader(strSQL);
+
+                foreach (int projectID in projectIDs)
+                {
+                    float sizeTotal = 0;
+                    float sizeCompleted = 0;
+                    int percentage = 0;
+
+                    foreach (DataRow dr in dt.Rows)
+                    {
+                        if (Convert.ToInt32(dr["ProjectID"]) == projectID)
+                        {
+                            sizeTotal += Convert.ToSingle(dr["TotalSize"]);
+                            DTC.StatusEnum status = (DTC.StatusEnum)Convert.ToInt16(dr["StatusID"]);
+                            if (status != DTC.StatusEnum.Running)
+                                sizeCompleted += Convert.ToSingle(dr["TotalSize"]);
+                        }
+
+                        if (sizeTotal > 0)
+                            percentage = (int)Math.Round(100f * sizeCompleted / sizeTotal);
+                    }
+
+                    data.Add(projectID, percentage);
+                }
+
+                return data;
+            }
+            public static Dictionary<long, float> GetProjectEternalTotalTimes(List<long> projectIDs)
+            {
+                Dictionary<long, float> data = new Dictionary<long, float>();
+
+                string strSQL = "SELECT SUM(Tasks.RealTime) AS EternalTotalTime, Tasks.ProjectID " +
+                    " FROM Tasks " +
+                    " INNER JOIN Projects ON Tasks.ProjectID = Projects.ProjectID " +
+                    " WHERE Projects.IsActionable = 1 AND Projects.StatusID = 1 " +
+                    " GROUP BY Tasks.ProjectID";
+                DataTable dt = RunExecuteReader(strSQL);
+
+                foreach (long projectID in projectIDs)
+                    data.Add(projectID, 0f);
+
+                foreach (DataRow dr in dt.Rows)
+                {
+                    long projectID = Convert.ToInt32(dr["ProjectID"]);
+
+                    if (data.ContainsKey(projectID))
+                        data[projectID] = Convert.ToSingle(dr["EternalTotalTime"]);
+                }
+
+                return data;
+            }
+            public static float GetProjectEternalTotalTimes(long projectID)
+            {
+                float result = 0;
+
+                List<long> list = new List<long>();
+                list.Add(projectID);
+
+                Dictionary<long, float> data = GetProjectEternalTotalTimes(list);
+                if (data.ContainsKey(projectID))
+                    result = data[projectID];
+
+                return result;
+            }
+            public static List<ProjectInfo> GetProjects(string strSQL)
+            {
+                List<ProjectInfo> data = new List<ProjectInfo>();
                 DataTable dt = RunExecuteReader(strSQL);
                 foreach (DataRow dr in dt.Rows)
-                    dict.Add(Convert.ToInt32(dr["ProjectID"]), GetProject(dr));
+                    data.Add(GetProject(dr));
 
-                return dict;
+                return data;
             }
             public static void MoveProjectToAnotherGroup(ProjectInfo project, ProjectGroupInfo newPG)
             {
@@ -1883,7 +1862,7 @@ namespace WebApiAzure
 
                 MoveProjectToAnotherGroup(project, newPG);
             }
-            public static Dictionary<int, ProjectInfo> GetImportantProjects(int n, bool isActionable, bool isCompletable)
+            public static List<ProjectInfo> GetImportantProjects(int n, bool isActionable, bool isCompletable)
             {
                 string filterSQL = "";
 
@@ -1959,9 +1938,9 @@ namespace WebApiAzure
                     " WHERE ProjectID = " + projectID;
                 RunNonQuery(strSQL);
             }
-            public static void InsertProjectOrder(Dictionary<int, ProjectInfo> projects, ProjectInfo project, int order)
+            public static void InsertProjectOrder(List<ProjectInfo> projects, ProjectInfo project, int order)
             {
-                foreach (ProjectInfo info in projects.Values)
+                foreach (ProjectInfo info in projects)
                 {
                     if (info.Order >= order) info.Order++;
                     ChangeProjectOrder(info.ID, info.Order);
@@ -2022,12 +2001,12 @@ namespace WebApiAzure
                 
                 return totalHours;
             }
-            public static Dictionary<int, ProjectPerfInfo> GetPerformanceFigures(Dictionary<int, ProjectInfo> projects, bool addToLog)
+            public static Dictionary<int, ProjectPerfInfo> GetPerformanceFigures(List<ProjectInfo> projects, bool addToLog)
             {
                 Dictionary<int, ProjectPerfInfo> dict = new Dictionary<int, ProjectPerfInfo>();
                 Dictionary<int, Dictionary<int, SegmentPerfInfo>> segmentPerfs = Segments.GetSegmentPerfs(projects);
 
-                foreach (ProjectInfo project in projects.Values)
+                foreach (ProjectInfo project in projects)
                 {
                     if (!dict.ContainsKey(project.ID))
                         dict.Add(project.ID, new ProjectPerfInfo());
@@ -2044,7 +2023,7 @@ namespace WebApiAzure
                     }
 
                     if (addToLog)
-                        AddProjectLog(project, DateTime.Today, dict[project.ID].GetPerformance());
+                        AddProjectLog(project.ID, DateTime.Today, dict[project.ID].GetPerformance());
                 }
 
                 return dict;
@@ -2052,8 +2031,8 @@ namespace WebApiAzure
             public static ProjectPerfInfo GetPerformanceFigures(ProjectInfo project, bool addToLog)
             {
                 ProjectPerfInfo pPerf = new ProjectPerfInfo();
-                Dictionary<int, ProjectInfo> projects = new Dictionary<int, ProjectInfo>();
-                projects.Add(project.ID, project);
+                List<ProjectInfo> projects = new List<ProjectInfo>();
+                projects.Add(project);
 
                 Dictionary<int, ProjectPerfInfo> dict = GetPerformanceFigures(projects, addToLog);
                 if (dict.ContainsKey(project.ID))
@@ -2061,9 +2040,9 @@ namespace WebApiAzure
 
                 return pPerf;
             }
-            public static Dictionary<int, Dictionary<long, GoalInfo>> GetGoalsOfProjects(Dictionary<int, ProjectInfo> projects)
+            public static Dictionary<int, List<GoalInfo>> GetGoalsOfProjects(List<ProjectInfo> projects)
             {
-                Dictionary<int, Dictionary<long, GoalInfo>> goalsOfProjects = new Dictionary<int, Dictionary<long, GoalInfo>>();
+                Dictionary<int, List<GoalInfo>> goalsOfProjects = new Dictionary<int, List<GoalInfo>>();
 
                 string strSQL = "SELECT Projects.ProjectID, Projects.ProjectCode, Projects.ProjectName, Goals.* " +
                     " FROM Projects" +
@@ -2075,15 +2054,15 @@ namespace WebApiAzure
                 DataTable dt = RunExecuteReader(strSQL);
                 foreach (DataRow dr in dt.Rows)
                 {
-                    foreach (ProjectInfo project in projects.Values)
+                    foreach (ProjectInfo project in projects)
                     {
                         int projectID = Convert.ToInt32(dr["ProjectID"]);
                         if (project.ID == projectID)
                         {
                             if (!goalsOfProjects.ContainsKey(projectID))
-                                goalsOfProjects.Add(projectID, new Dictionary<long, GoalInfo>());
+                                goalsOfProjects.Add(projectID, new List<GoalInfo>());
                             GoalInfo goal = DB.Goals.GetGoal(dr, true);
-                            goalsOfProjects[projectID].Add(goal.ID, goal);
+                            goalsOfProjects[projectID].Add(goal);
                         }
                     }
                 }
@@ -2230,17 +2209,17 @@ namespace WebApiAzure
                  
                 return dict;
             }
-            public static int AddProjectLog(ProjectInfo project, DateTime date, float performance)
+            public static int AddProjectLog(int projectID, DateTime date, float performance)
             {
                 string sql;
                 sql = "DELETE ProjectLog " +
-                    " WHERE ProjectID = " + project.ID +
+                    " WHERE ProjectID = " + projectID +
                     " AND TheDate = " + DTC.Date.ObtainGoodDT(date, true);
                 RunNonQuery(sql);
 
                 sql = "INSERT INTO ProjectLog " +
                     " (ProjectID, TheDate, Performance) VALUES (" +
-                    project.ID + "," +
+                    projectID + "," +
                     DTC.Date.ObtainGoodDT(date, true) + "," +
                     DTC.Control.CommaToDot(performance) +
                     ")  SELECT SCOPE_IDENTITY() AS ProjectLogID";
@@ -2950,7 +2929,7 @@ namespace WebApiAzure
                 if (totalSize > 0) return 100 * completeness / totalSize;
                 else return 0;
             }
-            public static Dictionary<int, Dictionary<int, SegmentPerfInfo>> GetSegmentPerfs(Dictionary<int, ProjectInfo> projects)
+            public static Dictionary<int, Dictionary<int, SegmentPerfInfo>> GetSegmentPerfs(List<ProjectInfo> projects)
             {
                 Dictionary<int, Dictionary<int, SegmentPerfInfo>> segmentPerfs = new Dictionary<int, Dictionary<int, SegmentPerfInfo>>();
 
@@ -2959,7 +2938,7 @@ namespace WebApiAzure
                 {
                     filterSQL = " AND (Projects.ProjectID = -1 " + filterSQL;
 
-                    foreach (ProjectInfo p in projects.Values)
+                    foreach (ProjectInfo p in projects)
                         filterSQL += " OR Projects.ProjectID = " + p.ID;
 
                     filterSQL = filterSQL + ")";
@@ -3015,8 +2994,8 @@ namespace WebApiAzure
             {
                 Dictionary<int, SegmentPerfInfo> segmentPerfs = new Dictionary<int, SegmentPerfInfo>();
 
-                Dictionary<int, ProjectInfo> projects = new Dictionary<int, ProjectInfo>();
-                projects.Add(project.ID, project);
+                List<ProjectInfo> projects = new List<ProjectInfo>();
+                projects.Add(project);
 
                 Dictionary<int, Dictionary<int, SegmentPerfInfo>> allSegmentPerfs = GetSegmentPerfs(projects);
                 if (allSegmentPerfs.ContainsKey(project.ID))

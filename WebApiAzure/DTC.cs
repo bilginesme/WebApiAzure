@@ -10,6 +10,7 @@ namespace WebApiAzure
     public class DTC
     {
         public enum StatusEnum : int { Running = 1, Success = 2, Fail = 3 }
+        public enum RankEnum : int { NoRank = 0, RankA = 1, RankB = 2, RankC = 3 }
         public enum SizeEnum : int { Zero = 0, Small = 1, Medium = 2, Large = 3, Huge = 5, Gigantic = 9, Astronomical = 17 }
         public enum RangeEnum : int { Floating = 0, Day = 1, Week = 2, Month = 3, Quarter = 4, Year = 5, Decade = 6, Lifetime = 7 }
         public enum NextPrevEnum { Next, Previous, Today }
