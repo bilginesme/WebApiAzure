@@ -11,8 +11,8 @@ namespace WebApiAzure.Controllers
     public class GoalsSuggestionsController : ApiController
     {
         [HttpGet]
-        [Route("api/GoalsSuggestions/{rangeID}")]
-        public IEnumerable<GoalInfo> Get(int rangeID)
+        [Route("api/GoalsSuggestions/{rangeID}/{isIncludeBetweenLimitGoals}")]
+        public IEnumerable<GoalInfo> Get(int rangeID, bool isIncludeBetweenLimitGoals)
         {
             DTC.RangeEnum range = (DTC.RangeEnum)rangeID;
             OwnerInfo owner = DB.Owner.GetOwner(range, DateTime.Today);
@@ -23,6 +23,8 @@ namespace WebApiAzure.Controllers
             DayInfo today = DB.Days.GetDay(DateTime.Today, true);
             GoalsEngine goalEngine = new GoalsEngine(goalsAll, goalGroups, today);
 
+            if (!isIncludeBetweenLimitGoals)
+                goalsAll = goalsAll.FindAll(i=>i.Nature == GoalInfo.NatureEnum.Standart);
 
             foreach(GoalInfo goal in goalsAll)
             {
