@@ -4570,7 +4570,7 @@ namespace WebApiAzure
 
                     if (measurementStyle == GoalInfo.MeasurementStyleEnum.LastValue)
                     {
-                        SQL = "SELECT TheWeight FROM days" +
+                        SQL = "SELECT TOP 1 TheWeight FROM days" +
                             " WHERE TheWeight > 0" +
                             " AND TheDay >= " + DTC.Date.ObtainGoodDT(goal.StartDate, true) +
                             " AND TheDay <= " + DTC.Date.ObtainGoodDT(goal.DueDate, true) +
@@ -4714,9 +4714,10 @@ namespace WebApiAzure
                 {
                     DataTable dt = RunExecuteReader(SQL);
 
-                    foreach (DataRow dr in dt.Rows)
+                    if(dt.Rows.Count == 1)
                     {
-                        if (dr[0] != DBNull.Value) result = Convert.ToSingle(dr[0]);
+                        if (dt.Rows[0][0] != DBNull.Value)
+                            result = Convert.ToSingle(dt.Rows[0][0]);
                     }
                 }
 
