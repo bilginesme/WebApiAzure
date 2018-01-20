@@ -25,7 +25,6 @@ namespace WebApiAzure.Controllers
             return DB.GetBlock(blockID);
         }
 
-
         [HttpPost]
         [Route("api/Blocks/")]
         public void Post([FromBody] BlockInfo block)

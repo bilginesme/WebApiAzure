@@ -18,21 +18,33 @@ namespace WebApiAzure.Controllers
             return zones;
         }
 
-        public ZoneInfo Get(long id)
+        [HttpGet]
+        [Route("api/Zones/{zoneID}")]
+        public ZoneInfo Get(long zoneID)
         {
-            return DB.Zones.GetZone(id);
+            return DB.Zones.GetZone(zoneID);
+        }
+         
+        [HttpPost]
+        [Route("api/Zones/")]
+        public void Post([FromBody] ZoneInfo zone)
+        {
+            DB.Zones.AddUpdateZone(zone);
         }
 
-        public void Post([FromBody]string value)
+        [HttpPut]
+        [Route("api/Zones/{zoneID}")]
+        public void Put(long zoneID, [FromBody] ZoneInfo zone)
         {
+            DB.Zones.AddUpdateZone(zone);
         }
 
-        public void Put(int id, [FromBody]string value)
+        [HttpDelete]
+        [Route("api/Zones/{zoneID}")]
+        public string Delete(long zoneID)
         {
-        }
-
-        public void Delete(int id)
-        {
+            DB.Zones.DeleteZone(zoneID);
+            return "ok";
         }
     }
 }
