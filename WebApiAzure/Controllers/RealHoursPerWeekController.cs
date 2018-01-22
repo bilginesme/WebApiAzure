@@ -28,7 +28,7 @@ namespace WebApiAzure.Controllers
             int count = 0;
             while(!isOK)
             {
-                string keyCandidate = w.StartDate.Year.ToString() + w.WeekNO.ToString();
+                string keyCandidate = w.StartDate.Year.ToString() + DTC.GetFullDigits(w.WeekNO, 2);
 
                 if (realMinutes.ContainsKey(keyCandidate))
                 {
