@@ -260,6 +260,7 @@ namespace WebApiAzure
             segment.BlockID = Convert.ToInt32(dr["BlockID"]);
             segment.Status = (DTC.StatusEnum)Convert.ToInt16(dr["StatusID"]);
             segment.StartDate = Convert.ToDateTime(dr["StartDate"]);
+            segment.EndDate = Convert.ToDateTime(dr["EndDate"]);
 
             return segment;
         }
@@ -286,6 +287,7 @@ namespace WebApiAzure
                 " BlockID = " + segment.BlockID + "," +
                 " Details = '" + DTC.InputText(segment.Details, 255) + "'," +
                 " StartDate = " + DTC.ObtainGoodDT(segment.StartDate, true) + "," +
+                " EndDate = " + DTC.ObtainGoodDT(segment.EndDate, true) + "," +
                 " StatusID = " + (int)segment.Status +
                 " WHERE SegmentID = " + segment.ID;
             RunNonQuery(strSQL);
@@ -1635,15 +1637,15 @@ namespace WebApiAzure
             {
                 ProjectSnapshotInfo projectSnapshot = new ProjectSnapshotInfo();
 
-                string strSQL = "SELECT Projects.ProjectID, Projects.StatusID, Projects.RankID, Projects.ProjectName, Projects.ProjectCode, " +
-                    " SUM(Tasks.RealTime) AS RealTimeTotal, " +
-                    " ProjectGroups.ProjectGroupCode, Projects.DueDate, Projects.StartDate, ProjectImgName " +
+                string strSQL = "SELECT Projects.ProjectID, Projects.StatusID, Projects.RankID, Projects.ProjectName, " +
+                    " Projects.ProjectCode, SUM(Tasks.RealTime) AS RealTimeTotal, ProjectGroups.ProjectGroupCode, "  +
+                    " Projects.DueDate, Projects.StartDate, Projects.ProjectImgName " +
                     " FROM Projects " +
-                    " INNER JOIN Tasks ON Projects.ProjectID = Tasks.ProjectID " +
                     " INNER JOIN ProjectGroups ON Projects.ProjectGroupID = ProjectGroups.ProjectGroupID " +
+                    " LEFT OUTER JOIN Tasks ON Projects.ProjectID = Tasks.ProjectID " +
                     " WHERE Projects.ProjectID = " + projectID +
                     " GROUP BY Projects.ProjectID, Projects.StatusID, Projects.RankID, Projects.ProjectName, Projects.ProjectCode, " +
-                    " ProjectGroups.ProjectGroupCode, Projects.DueDate, Projects.StartDate, ProjectImgName ";
+                    " ProjectGroups.ProjectGroupCode, Projects.DueDate, Projects.StartDate, Projects.ProjectImgName";
                 DataTable dt = RunExecuteReader(strSQL);
 
                 if (dt.Rows.Count == 1)
@@ -1658,7 +1660,8 @@ namespace WebApiAzure
                     projectSnapshot.ProjectCode = Convert.ToString(dr["ProjectCode"]);
                     projectSnapshot.ProjectName = Convert.ToString(dr["ProjectName"]);
                     projectSnapshot.ProjectGroupCode = Convert.ToString(dr["ProjectGroupCode"]);
-                    projectSnapshot.RealTime = Convert.ToSingle(dr["RealTimeTotal"]);
+                    if(dr["RealTimeTotal"] != DBNull.Value)
+                        projectSnapshot.RealTime = Convert.ToSingle(dr["RealTimeTotal"]);
                     projectSnapshot.StartDate = DTC.GetSmartDateTime(dtStartDate, false);
                     projectSnapshot.DueDate = DTC.GetSmartDateTime(dtDueDate, false);
                     projectSnapshot.ProjectImgName = Convert.ToString(dr["ProjectImgName"]);
@@ -2394,7 +2397,7 @@ namespace WebApiAzure
                 else
                 {
                     SQL = "UPDATE Zones SET " +
-                       " Title = '" + DTC.Control.InputText(zone.Title, 255) + "'," +
+                       " ZoneTitle = '" + DTC.Control.InputText(zone.Title, 255) + "'," +
                        " HoursNeeded = " + zone.HoursNeeded + "," +
                        " IsCompleted = " + Convert.ToInt16(zone.IsCompleted) + "," +
                        " ProjectID = " + zone.ProjectID + "," +
@@ -2572,6 +2575,7 @@ namespace WebApiAzure
                        " Title = '" + DTC.Control.InputText(block.Title, 255) + "'," +
                        " Details = '" + DTC.Control.InputText(block.Details, 999) + "'," +
                        " ProjectID = " + block.ProjectID + "," +
+                       " ZoneID = " + block.ZoneID + "," +
                        " HasDue = " + Convert.ToUInt32(block.HasDue) + "," +
                        " StartDate = " + DTC.Date.ObtainGoodDT(block.StartDate, true) + "," +
                        " EndDate = " + DTC.Date.ObtainGoodDT(block.EndDate, true) + "," +
