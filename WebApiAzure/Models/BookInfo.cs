@@ -7,100 +7,43 @@ namespace WebApiAzure.Models
 {
     public class BookInfo
     {
-        #region Private Members
-        int id;
-        DTC.BookNature nature;
-        DTC.SizeEnum size;
-        string title;
-        string author;
-        int numPages;
-        int totalDuration;
-        DateTime entryDate;
-        string details;
-        Dictionary<int, ChapterInfo> chapters;
-        bool isProcessed;
+        public enum AudiobookProcessTypeEnum { NA = 0, Hours = 1, Minutes = 2, Chapters = 3 }
+
+        #region Public Members
+        public int ID { get; set; }
+        public DTC.BookNature Nature { get; set; }
+        public string Title { get; set; }
+        public string Author { get; set; }
+        public float TotalValue { get; set; }
+        public float CurrentValue { get; set; }
+        public bool IsTrackProgress { get; set; }
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+        public DTC.StatusEnum Status { get; set; }
+        public string Details { get; set; }
+        public AudiobookProcessTypeEnum AudiobookProcessType { get; set; }
         #endregion
 
         #region Constructors
         public BookInfo()
         {
-            id = 0;
-            nature = DTC.BookNature.Book;
-            size = DTC.SizeEnum.Zero;
-            title = "";
-            author = "";
-            numPages = 0;
-            totalDuration = 0;
-            entryDate = DateTime.Today;
-            details = "";
-            chapters = new Dictionary<int, ChapterInfo>();
-            isProcessed = false;
+            ID = 0;
+            Nature = DTC.BookNature.Book;
+            Title = string.Empty;
+            Author = string.Empty;
+            TotalValue = 0;
+            CurrentValue = 0;
+            IsTrackProgress = true;
+            StartDate = DateTime.Today;
+            EndDate = DateTime.Today;
+            Status = DTC.StatusEnum.Running;
+            Details = string.Empty;
+            AudiobookProcessType = AudiobookProcessTypeEnum.NA;
         }
         #endregion
 
         #region Public Methods
-        public float GetSize()
-        {
-            return (float)((int)size);
-        }
-        #endregion
 
-        #region Public Properties
-        public int ID
-        {
-            get { return id; }
-            set { id = value; }
-        }
-        public DTC.BookNature Nature
-        {
-            get { return nature; }
-            set { nature = value; }
-        }
-        public DTC.SizeEnum Size
-        {
-            get { return size; }
-            set { size = value; }
-        }
-        public string Title
-        {
-            get { return title; }
-            set { title = value; }
-        }
-        public string Author
-        {
-            get { return author; }
-            set { author = value; }
-        }
-        public int NumPages
-        {
-            get { return numPages; }
-            set { numPages = value; }
-        }
-        public int TotalDuration
-        {
-            get { return totalDuration; }
-            set { totalDuration = value; }
-        }
-        public DateTime EntryDate
-        {
-            get { return entryDate; }
-            set { entryDate = value; }
-        }
-        public string Details
-        {
-            get { return details; }
-            set { details = value; }
-        }
-        public Dictionary<int, ChapterInfo> Chapters
-        {
-            get { return chapters; }
-            set { chapters = value; }
-        }
-        public bool IsProcessed
-        {
-            get { return isProcessed; }
-            set { isProcessed = value; }
-        }
         #endregion
     }
-}
+}   

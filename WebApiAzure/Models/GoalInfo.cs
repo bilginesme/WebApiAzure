@@ -11,88 +11,101 @@ namespace WebApiAzure.Models
         public enum NatureEnum : int { NA = 0, Standart = 1, BetweenLimits = 2 }
         public enum MeasurementStyleEnum : int { NA = 0, LastValue = 1, Average = 2 }
         #endregion
+        
+        #region Members
+        public long ID { get; set; }
+        public int GroupID { get; set; }
+        public string Definition { get; set; }
+        public string Details { get; set; }
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+        public DateTime DueDate { get; set; }
+        public NatureEnum Nature { get; set; }
+        public DTC.RangeEnum Range { get; set; }
+        public int OwnerID { get; set; }
+        public DTC.StatusEnum Status { get; set; }
+        public DTC.SizeEnum Size { get; set; }
+        public GoalTypeInfo.TypeEnum GoalType { get; set; }
+        public float StartingValue { get; set; }
+        public float GoalValue { get; set; }
+        public float GenericValue { get; set; }
+        public int PrimaryProjectID { get; set; }
+        public float EstimatedHours { get; set; }
+        public int EstimatedMinutes { get; set; }
+        public bool IsFocus { get; set; }
+        public int TemplateID { get; set; }
+        public float ThresholdValue { get; set; }
+        public int ItemID { get; set; }
+        public int ProjectGroupID { get; set; }
+        public int ProjectID { get; set; }
+        public int SecondaryProjectGroupID { get; set; }
+        public int SecondaryProjectID { get; set; }
+        public int TertiaryProjectGroupID { get; set; }
+        public int TertiaryProjectID { get; set; }
+        public string Hour { get; set; }
+        public int Criteria { get; set; }
+        public int MeasurementStyle { get; set; }
+        public int ItemNature { get; set; }
+        public int PragmaID { get; set; }
+        public int PragmaAttributeID { get; set; }
+        public string PragmaAttributePhrase { get; set; }
+        public float PragmaAttributeValue { get; set; }
+        public int PragmaNumInstances { get; set; }
+        public bool IsBlackAndWhite { get; set; }
+        public float PresentPercentage { get; set; }
+        public float DesiredValue { get; set; }
+        public float PresentValue { get; private set; }
+        public float Contribution { get; set; }
+        public float ContributionMax { get; set; }
+        public float HoursPerUnit { get; set; }
+        public bool IsAchieved { get; private set; }
 
-        #region Private Members
-        long id;
-        int groupID;
-        bool isFocus;
-        int templateID;
-        DateTime startDate, endDate, dueDate;
-        NatureEnum nature;
-        DTC.RangeEnum range;
-        int ownerID;
-        DTC.StatusEnum status;
-        DTC.SizeEnum size;
-        GoalTypeInfo.TypeEnum goalType;
-        string definition, details;
-        float startingValue;
-        float goalValue;
-        int estimatedMinutes;
-        float estimatedHours;
-        float thresholdValue;
-        float genericValue;
-        int itemID;
-        int projectGroupID;
-        int primaryProjectID;
-        int projectID, secondaryProjectGroupID, secondaryProjectID, tertiaryProjectGroupID, tertiaryProjectID;
-        string hour;
-        int criteria;
-        int measurementStyle;
-        int itemNature;
-        int pragmaID, pragmaAttributeID;
-        string pragmaAttributePhrase;
-        float pragmaAttributeValue;
-        int pragmaNumInstances;
-        float presentValue = 0, presentPercentage = 0;
-        bool isBlackAndWhite;
-        float contribution, contributionMax;
-        float hoursPerUnit;
         #endregion
-
         #region Constructors
         public GoalInfo()
         {
-            id = 0;
-            groupID = 1;
-            isFocus = false;
-            templateID = 0;
-            definition = "";
-            details = "";
-            nature = NatureEnum.Standart;
-            range = DTC.RangeEnum.Floating;
-            ownerID = 0;
-            status = DTC.StatusEnum.Running;
-            size = DTC.SizeEnum.Medium;
-            startDate = DateTime.Now;
-            endDate = DateTime.Now;
-            dueDate = DateTime.Now;
-            goalType = GoalTypeInfo.TypeEnum.NA;
-            primaryProjectID = 0;
-            estimatedMinutes = 0;
-            estimatedHours = 0;
-            thresholdValue = 0;
-            itemID = 0;
-            projectGroupID = 0;
-            thresholdValue = 0;
-            goalValue = 0;
-            genericValue = 0;
-            projectID = 0;
-            secondaryProjectGroupID = 0;
-            secondaryProjectID = 0;
-            tertiaryProjectGroupID = 0;
-            tertiaryProjectID = 0;
-            hour = "00:00";
-            criteria = 0;
-            measurementStyle = 0;
-            itemNature = 0;
-            pragmaID = 0;
-            pragmaAttributeID = 0;
-            pragmaAttributePhrase = "";
-            pragmaAttributeValue = 0;
-            pragmaNumInstances = 0;
-            isBlackAndWhite = false;
-            contribution = contributionMax = 0;
-            hoursPerUnit = 0;
+            ID = 0;
+            GroupID = 1;
+            IsFocus = false;
+            TemplateID = 0;
+            Definition = string.Empty;
+            Details = string.Empty;
+            Nature = NatureEnum.Standart;
+            Range = DTC.RangeEnum.Floating;
+            OwnerID = 0;
+            Status = DTC.StatusEnum.Running;
+            Size = DTC.SizeEnum.Medium;
+            StartDate = DateTime.Now;
+            EndDate = DateTime.Now;
+            DueDate = DateTime.Now;
+            GoalType = GoalTypeInfo.TypeEnum.NA;
+            PrimaryProjectID = 0;
+            EstimatedMinutes = 0;
+            EstimatedHours = 0;
+            ThresholdValue = 0;
+            ItemID = 0;
+            ProjectGroupID = 0;
+            ThresholdValue = 0;
+            GoalValue = 0;
+            GenericValue = 0;
+            ProjectID = 0;
+            SecondaryProjectGroupID = 0;
+            SecondaryProjectID = 0;
+            TertiaryProjectGroupID = 0;
+            TertiaryProjectID = 0;
+            Hour = "00:00";
+            Criteria = 0;
+            MeasurementStyle = 0;
+            ItemNature = 0;
+            PragmaID = 0;
+            PragmaAttributeID = 0;
+            PragmaAttributePhrase = string.Empty;
+            PragmaAttributeValue = 0;
+            PragmaNumInstances = 0;
+            IsBlackAndWhite = false;
+            Contribution = ContributionMax = 0;
+            HoursPerUnit = 0;
+            IsAchieved = false;
         }
         #endregion
 
@@ -101,7 +114,7 @@ namespace WebApiAzure.Models
         {
             float result = 0;
 
-            TimeSpan upToNow = DateTime.Today.Subtract(startDate);
+            TimeSpan upToNow = DateTime.Today.Subtract(StartDate);
             result = (float)upToNow.Days;
 
             result += today.GetTodaysPassedHours() / today.GetTodaysTotalHours();
@@ -115,7 +128,7 @@ namespace WebApiAzure.Models
         {
             float result = 0;
 
-            TimeSpan allSpan = dueDate.Subtract(startDate);
+            TimeSpan allSpan = DueDate.Subtract(StartDate);
             result = (float)allSpan.TotalDays + 1;
             if (result < 0) result = 0;
 
@@ -124,16 +137,16 @@ namespace WebApiAzure.Models
         #endregion
 
         #region Public Methods
-        public bool IsNull() { return id > 0 ; }
+        public bool IsNull() { return ID > 0 ; }
         public float GetDesiredPercentage(DayInfo today)
         {
             float result = 0;
 
             if (GetTotalDays() != 0)
             {
-                if (nature == NatureEnum.Standart)
+                if (Nature == NatureEnum.Standart)
                     result = 100 * GetPassedDays(today) / GetTotalDays();
-                else if (nature == NatureEnum.BetweenLimits)
+                else if (Nature == NatureEnum.BetweenLimits)
                     result = 100 * GetRemainingDays(today) / GetTotalDays();
             }
             else result = 0;
@@ -151,7 +164,7 @@ namespace WebApiAzure.Models
         {
             float result = 0;
 
-            TimeSpan leftDays = dueDate.Subtract(DateTime.Today);
+            TimeSpan leftDays = DueDate.Subtract(DateTime.Today);
             result = (float)leftDays.Days;
 
             result += (today.GetTodaysTotalHours() - today.GetTodaysPassedHours()) / today.GetTodaysTotalHours();
@@ -170,12 +183,12 @@ namespace WebApiAzure.Models
         {
             float result = 0;
 
-            if (goalValue > 0)
+            if (GoalValue > 0)
             {
-                if (nature == NatureEnum.Standart)
-                    result = startingValue - GetDesiredPercentage(today) * (startingValue - goalValue) / 100;
-                else if (nature == NatureEnum.BetweenLimits)
-                    result = startingValue - (100 - GetDesiredPercentage(today)) * (startingValue - goalValue) / 100;
+                if (Nature == NatureEnum.Standart)
+                    result = StartingValue - GetDesiredPercentage(today) * (StartingValue - GoalValue) / 100;
+                else if (Nature == NatureEnum.BetweenLimits)
+                    result = StartingValue - (100 - GetDesiredPercentage(today)) * (StartingValue - GoalValue) / 100;
                 //result = startingValue - (desiredPercentage) * (startingValue - goalValue) / 100;
 
             }
@@ -191,24 +204,24 @@ namespace WebApiAzure.Models
         {
             float result = 0;
              
-            if(status == DTC.StatusEnum.Success)
+            if(Status == DTC.StatusEnum.Success)
             {
                 result = 100;
             }
             else
             {
-                if (goalValue > 0)
+                if (GoalValue > 0)
                 {
-                    if(goalType == GoalTypeInfo.TypeEnum.Weight && presentValue == 0)
+                    if(GoalType == GoalTypeInfo.TypeEnum.Weight && PresentValue == 0)
                     {
                         result = 0;
                     }
                     else
                     {
-                        if (nature == NatureEnum.Standart)
-                            result = 100 * (presentValue - startingValue) / (goalValue - startingValue);
-                        else if (nature == NatureEnum.BetweenLimits)
-                            result = 100 * (goalValue - presentValue) / goalValue;
+                        if (Nature == NatureEnum.Standart)
+                            result = 100 * (PresentValue - StartingValue) / (GoalValue - StartingValue);
+                        else if (Nature == NatureEnum.BetweenLimits)
+                            result = 100 * (GoalValue - PresentValue) / GoalValue;
                     }
                 }
                 else result = 0;
@@ -227,19 +240,19 @@ namespace WebApiAzure.Models
         {
             float result = 0;
 
-            if (DateTime.Today > dueDate) return 0;
+            if (DateTime.Today > DueDate) return 0;
 
             if (this.Nature == NatureEnum.Standart)
             {
-                if (GetRemainingDays(today) > 1) result = Math.Sign(goalValue - startingValue) * (goalValue - presentValue) / GetRemainingDays(today);
-                else result = Math.Sign(goalValue - startingValue) * goalValue - presentValue;
+                if (GetRemainingDays(today) > 1) result = Math.Sign(GoalValue - StartingValue) * (GoalValue - PresentValue) / GetRemainingDays(today);
+                else result = Math.Sign(GoalValue - StartingValue) * GoalValue - PresentValue;
             }
             if (this.Nature == NatureEnum.BetweenLimits)
             {
-                if (presentValue < goalValue)
+                if (PresentValue < GoalValue)
                 {
-                    if (GetRemainingDays(today) > 1) result = (goalValue - presentValue) / GetRemainingDays(today);
-                    else result = goalValue - presentValue;
+                    if (GetRemainingDays(today) > 1) result = (GoalValue - PresentValue) / GetRemainingDays(today);
+                    else result = GoalValue - PresentValue;
                 }
                 else result = 0;
             }
@@ -300,56 +313,23 @@ namespace WebApiAzure.Models
         }
         public float GetPresentValue()
         {
-            return presentValue;
+            return PresentValue;
         }
-        public void SetPresentValue(float value) { presentValue = value; }
-        #endregion
+        public void SetPresentValue(float value)
+        {
+            PresentValue = value;
+            IsAchieved = false;
 
-        #region Public Properties
-        public long ID { get { return id; } set { id = value; }}
-        public int GroupID { get { return groupID; } set { groupID = value; }}
-        public string Definition { get { return definition; } set { definition = value; }}
-        public string Details { get { return details; } set { details = value; }}
-        public DateTime StartDate { get { return startDate; } set { startDate = value; }}
-        public DateTime EndDate { get { return endDate; } set { endDate = value; }}
-        public DateTime DueDate { get { return dueDate; } set { dueDate = value; }}
-        public NatureEnum Nature { get { return nature; } set { nature = value; }}
-        public DTC.RangeEnum Range { get { return range; } set { range = value; }}
-        public int OwnerID { get { return ownerID; } set { ownerID = value; }}
-        public DTC.StatusEnum Status { get { return status; } set { status = value; }}
-        public DTC.SizeEnum Size { get { return size; } set { size = value; }}
-        public GoalTypeInfo.TypeEnum GoalType { get { return goalType; } set { goalType = value; }}
-        public float StartingValue { get { return startingValue; } set { startingValue = value; }}
-        public float GoalValue { get { return goalValue; } set { goalValue = value; }}
-        public float GenericValue { get { return genericValue; } set { genericValue = value; }}
-        public int PrimaryProjectID { get { return primaryProjectID; } set { primaryProjectID = value; }}
-        public float EstimatedHours { get { return estimatedHours; } set { estimatedHours = value; }}
-        public int EstimatedMinutes { get { return estimatedMinutes; } set { estimatedMinutes = value; }}
-        public bool IsFocus { get { return isFocus; } set { isFocus = value; }}
-        public int TemplateID { get { return templateID; } set { templateID = value; }}
-        public float ThresholdValue { get { return thresholdValue; } set { thresholdValue = value; }}
-        public int ItemID { get { return itemID; } set { itemID = value; }}
-        public int ProjectGroupID { get { return projectGroupID; } set { projectGroupID = value; }}
-        public int ProjectID { get { return projectID; } set { projectID = value; }}
-        public int SecondaryProjectGroupID { get { return secondaryProjectGroupID; } set { secondaryProjectGroupID = value; }}
-        public int SecondaryProjectID { get { return secondaryProjectID; } set { secondaryProjectID = value; }}
-        public int TertiaryProjectGroupID { get { return tertiaryProjectGroupID; } set { tertiaryProjectGroupID = value; }}
-        public int TertiaryProjectID { get { return tertiaryProjectID; } set { tertiaryProjectID = value; }}
-        public string Hour { get { return hour; } set { hour = value; }}
-        public int Criteria { get { return criteria; } set { criteria = value; }}
-        public int MeasurementStyle { get { return measurementStyle; } set { measurementStyle = value; }}
-        public int ItemNature { get { return itemNature; } set { itemNature = value; }}
-        public int PragmaID { get { return pragmaID; } set { pragmaID = value; }}
-        public int PragmaAttributeID { get { return pragmaAttributeID; } set { pragmaAttributeID = value; }}
-        public string PragmaAttributePhrase { get { return pragmaAttributePhrase; } set { pragmaAttributePhrase = value; }}
-        public float PragmaAttributeValue { get { return pragmaAttributeValue; } set { pragmaAttributeValue = value; }}
-        public int PragmaNumInstances { get { return pragmaNumInstances; } set { pragmaNumInstances = value; }}
-        public bool IsBlackAndWhite { get { return isBlackAndWhite; } set { isBlackAndWhite = value; }}
-        public float PresentPercentage { get { return presentPercentage; } set { presentPercentage = value; } }
-        public float PresentValue { get { return presentValue; } }
-        public float Contribution { get { return contribution; } set { contribution = value; } }
-        public float ContributionMax { get { return contributionMax; } set { contributionMax = value; } }
-        public float HoursPerUnit { get { return hoursPerUnit; } set { hoursPerUnit = value; } }
+            if(Status == DTC.StatusEnum.Running)
+            {
+                if (Nature == NatureEnum.Standart && GoalType != GoalTypeInfo.TypeEnum.Weight)
+                {
+                    if (PresentValue >= GoalValue)
+                        IsAchieved = true;
+                }
+            }
+            
+        }
         #endregion
 
         object ICloneable.Clone() { return this.MemberwiseClone(); }

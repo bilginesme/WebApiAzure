@@ -6,40 +6,42 @@ namespace WebApiAzure
 {
     public class WeekInfo
     {
-        #region Private Members
-        DateTime startDate, endDate;
-        int weekNO;
-        int weekID;
-        string label, theme;
-        int performance;
+        #region Members
+        public int WeekID { get; set; }
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+        public int WeekNO { get; set; }
+        public string Label { get; set; }
+        public string Theme { get; set; }
+        public int Performance { get; set; }
         #endregion
 
         #region Constructors
         public WeekInfo()
         {
-            weekID = 0;
-            startDate = GetFirstDayOfWeek(DateTime.Today);
+            WeekID = 0;
+            StartDate = GetFirstDayOfWeek(DateTime.Today);
             GenerateData();
-            label = "";
-            theme = "";
-            performance = 0;
+            Label = "";
+            Theme = "";
+            Performance = 0;
         }
         public WeekInfo(DateTime theDate)
         {
-            weekID = 0;
-            startDate = GetFirstDayOfWeek(theDate);
+            WeekID = 0;
+            StartDate = GetFirstDayOfWeek(theDate);
             GenerateData();
-            label = "";
-            theme = "";
-            performance = 0;
+            Label = "";
+            Theme = "";
+            Performance = 0;
         }
         #endregion
 
         #region Private Methods
         private void GenerateData()
         {
-            weekNO = DTC.Date.GetWeekNumber(startDate);
-            endDate = GetLastDayOfWeek(startDate);
+            WeekNO = DTC.Date.GetWeekNumber(StartDate);
+            EndDate = GetLastDayOfWeek(StartDate);
         }
         /// <summary>
         /// Returns the first day, (i.e.) Monday of the week
@@ -70,16 +72,16 @@ namespace WebApiAzure
         #region Public Methods
         public bool CheckIsThisThePresentWeek()
         {
-            if (startDate <= DateTime.Today && endDate >= DateTime.Today) return true;
+            if (StartDate <= DateTime.Today && EndDate >= DateTime.Today) return true;
             else return false;
         }
         public MonthInfo GetMajorMonth()
         {
-            int first = startDate.Month;
+            int first = StartDate.Month;
             int count = 0;
-            DateTime date = startDate;
+            DateTime date = StartDate;
 
-            while (date < endDate)
+            while (date < EndDate)
             {
                 if (first != date.Month) break;
                 date = date.AddDays(1);
@@ -87,64 +89,18 @@ namespace WebApiAzure
             }
 
             if (count > 3)
-                return new MonthInfo(startDate);
+                return new MonthInfo(StartDate);
             else
-                return new MonthInfo(endDate);
+                return new MonthInfo(EndDate);
         }
         public string GetYearWeekKey()
         {
-            string strWeek = weekNO.ToString();
+            string strWeek = WeekNO.ToString();
             if (strWeek.Length == 1)
                 strWeek = "0" + strWeek;
-            string key = startDate.Year.ToString() + strWeek;
+            string key = StartDate.Year.ToString() + strWeek;
 
             return key;
-        }
-        #endregion
-
-        #region Public Properties
-        /// <summary>
-        /// First day of the week
-        /// </summary>
-        public DateTime StartDate
-        {
-            get { return startDate; }
-            set
-            {
-                startDate = value;
-                GenerateData();
-            }
-        }
-        /// <summary>
-        /// Last day of the week
-        /// </summary>
-        public DateTime EndDate
-        {
-            get { return endDate; }
-        }
-        public int WeekNO
-        {
-            get { return weekNO; }
-        }
-        public string Label
-        {
-            get { return label; }
-            set { label = value; }
-        }
-        public string Theme
-        {
-            get { return theme; }
-            set { theme = value; }
-        }
-        public int WeekID
-        {
-            get { return weekID; }
-            set { weekID = value; }
-        }
-        public int Performance
-        {
-            get { return performance; }
-            set { performance = value; }
         }
         #endregion
     }

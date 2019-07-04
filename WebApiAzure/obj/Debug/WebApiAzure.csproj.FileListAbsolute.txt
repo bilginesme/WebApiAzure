@@ -280,7 +280,7 @@ C:\inetpub\wwwroot\WebApiAzure\WebApiAzure\bin\Microsoft.Owin.Security.Google.xm
 C:\inetpub\wwwroot\WebApiAzure\WebApiAzure\bin\Microsoft.Owin.Security.Twitter.xml
 C:\inetpub\wwwroot\WebApiAzure\WebApiAzure\bin\Microsoft.Owin.Security.MicrosoftAccount.xml
 C:\inetpub\wwwroot\WebApiAzure\WebApiAzure\bin\System.Web.Http.Owin.xml
+C:\inetpub\wwwroot\WebApiAzure\WebApiAzure\obj\Debug\WebApiAzure.csproj.CoreCompileInputs.cache
+C:\inetpub\wwwroot\WebApiAzure\WebApiAzure\obj\Debug\WebApiAzure.csproj.CopyComplete
 C:\inetpub\wwwroot\WebApiAzure\WebApiAzure\obj\Debug\WebApiAzure.dll
 C:\inetpub\wwwroot\WebApiAzure\WebApiAzure\obj\Debug\WebApiAzure.pdb
-C:\inetpub\wwwroot\WebApiAzure\WebApiAzure\obj\Debug\WebApiAzure.csprojResolveAssemblyReference.cache
-C:\inetpub\wwwroot\WebApiAzure\WebApiAzure\obj\Debug\WebApiAzure.csproj.CoreCompileInputs.cache

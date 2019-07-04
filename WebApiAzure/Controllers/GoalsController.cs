@@ -11,8 +11,15 @@ namespace WebApiAzure.Controllers
     public class GoalsController : ApiController
     {
         [HttpGet]
-        [Route("api/Goals/{ownerID}")]
-        public IEnumerable<GoalInfo> Get(long ownerID)
+        [Route("api/Goals/{goalID}")]
+        public GoalInfo Get(int goalID)
+        {
+            return DB.Goals.GetGoal(goalID, true);
+        }
+
+        [HttpGet]
+        [Route("api/Goals/{ownerID}/{param1}/{param2}/{param3}")]
+        public IEnumerable<GoalInfo> Get(long ownerID, string param1, string param2, string param3)
         {
             OwnerInfo owner = DB.Owner.GetOwner(DTC.RangeEnum.Week, DateTime.Today);
             List<GoalInfo> goals = DB.Goals.GetGoals(owner, true);
@@ -36,16 +43,40 @@ namespace WebApiAzure.Controllers
             foreach (GoalInfo goal in goals)
             {
                 if (standartOrProjected == 1)
+                {
                     goal.PresentPercentage = goal.GetPresentPercentage();
+                    goal.DesiredValue = goal.GoalValue;
+                }
                 if (standartOrProjected == 2)
+                {
                     goal.PresentPercentage = goal.GetPerformance(false, today);     // What does it mean? isFull
+                    goal.DesiredValue = goal.GetDesiredValue(today);
+                }
+                    
             }
 
             goals = goals.OrderByDescending(i=>i.Status).OrderByDescending(i => i.PresentPercentage).ToList();
 
+            if(getPresentValues)
+            {
+                List<GoalGroupInfo> goalGroups = DB.Goals.GetGoalGroups();
+                GoalsEngine goalEngine = new GoalsEngine(goals, goalGroups, today);
+                GoalsEngine.PerformanceNatureEnum nature = GoalsEngine.PerformanceNatureEnum.Normal;
+                if (standartOrProjected == 1)
+                    nature = GoalsEngine.PerformanceNatureEnum.Worst;
+                else if (standartOrProjected == 1)
+                    nature = GoalsEngine.PerformanceNatureEnum.Normal;
+
+                foreach (GoalInfo goal in goals)
+                {
+                    goal.Contribution = goalEngine.GetGoalContributionWeighted(goal, false, nature);
+                    goal.ContributionMax = goalEngine.GetGoalContributionWeighted(goal, true, nature);
+                }
+            }
+
+
             return goals;
         }
-
 
         [HttpGet]
         [Route("api/Goals/{rangeID}/{projectParameter}")]
@@ -71,24 +102,32 @@ namespace WebApiAzure.Controllers
             return projects;
         }
 
-        // GET: api/Goals/5
-        public string Get(int id)
-        {
-            return "value";
-        }
-
-        // POST: api/Goals
+        [HttpPost]
+        [Route("api/Goals/")]
         public void Post([FromBody]string value)
         {
         }
 
-        // PUT: api/Goals/5
-        public void Put(int id, [FromBody]string value)
+        [HttpPut]
+        [Route("api/Goals/{goalID}")]
+        public void Put(int goalID, [FromBody]string value)
         {
+
+        }
+        
+        [HttpPut]
+        [Route("api/Goals/{goalID}/{actionID}/{isCompleted}")]
+        public void Put(int goalID, int actionID, bool isCompleted, [FromBody]string value)
+        {
+            if(actionID == 1)
+            {
+                DB.Goals.UpdateGoalAsCompleted(goalID);
+            }
         }
 
-        // DELETE: api/Goals/5
-        public void Delete(int id)
+        [HttpDelete]
+        [Route("api/Goals/{goalID}")]
+        public void Delete(int goalID)
         {
         }
     }

@@ -19,48 +19,38 @@ namespace WebApiAzure.Models
             Pragma = 36,
             NumberOfSegments = 37, NumberOfBlocks = 38
         }
-        public enum NatureEnum : int { Positive = 1, Negative = -1, BothPossible = 0
-        }
+        public enum NatureEnum : int { Positive = 1, Negative = -1, BothPossible = 0 }
         #endregion
 
-        #region Private Members
-        int id;
-        string code, name;
-        int order;
-        bool isObjective;
-        NatureEnum nature;
-        string evaluationSQL;
-        TypeEnum type;
+
+        #region  Members
+        public int ID { get; set; }
+        public int Order { get; set; }
+        public string Name { get; set; }
+        public string Code { get; set; }
+        public string EvaluationSQL { get; set; }
+        public NatureEnum Nature { get; set; }
+        public bool IsObjective { get; set; }
+        public TypeEnum Type { get; set; }
         #endregion
 
         #region Constructors
         public GoalTypeInfo()
         {
-            code = "";
-            name = "";
-            nature = NatureEnum.BothPossible;
-            order = 0;
-            evaluationSQL = "";
-            isObjective = false;
-            type = TypeEnum.NA;
+            Code = "";
+            Name = "";
+            Nature = NatureEnum.BothPossible;
+            Order = 0;
+            EvaluationSQL = "";
+            IsObjective = false;
+            Type = TypeEnum.NA;
         }
         public GoalTypeInfo(int id, string code, string name)
         {
-            this.id = id;
-            this.code = code;
-            this.name = name;
+            ID = id;
+            Code = code;
+            Name = name;
         }
-        #endregion
-
-        #region Public Properties
-        public int ID { get { return id; } set { id = value; }}
-        public int Order { get { return order; } set { order = value; }}
-        public string Name { get { return name; } set { name = value; }}
-        public string Code { get { return code; } set { code = value; }}
-        public string EvaluationSQL { get { return evaluationSQL; } set { evaluationSQL = value; }}
-        public NatureEnum Nature { get { return nature; } set { nature = value; }}
-        public bool IsObjective { get { return isObjective; } set { isObjective = value; }}
-        public TypeEnum Type { get { return type; } set { type = value; }}
         #endregion
     }
 }

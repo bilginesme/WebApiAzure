@@ -16,14 +16,20 @@ namespace WebApiAzure.Models
         public string ProjectGroupCode { get; set; }
         public float RealTime { get; set; }
         public float EternalTotalTime { get; set; }
-        public string StartDate { get; set; }
-        public string DueDate { get; set; }
+        public DateTime StartDate { get; set; }
+        public DateTime DueDate { get; set; }
         public int NumDaysRemaining { get; set; }
         public int PercentCompleted { get; set; }
+        public float CompletionRate { get; set; }
+        public float HoursNeededToComplete { get; set; }
+        public DateTime EstimatedCompletionDate { get; set; }
+        public DateTime EstimatedCompletionDateBasedOnLast30Days { get; set; }
+        public float WorkPerDayNeededForDueDate { get; set; }
         public float W0 { get; set; }
         public float W1 { get; set; }
         public float W2 { get; set; }
         public float W3 { get; set; }
+        public string Details { get; set; }
 
         public ProjectSnapshotInfo()
         {

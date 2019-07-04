@@ -7,56 +7,54 @@ namespace WebApiAzure.Models
 {
     public class ProjectInfo : ICloneable
     {
-        #region Enums
         public enum ShowHowManyTasksEnum { All = -1, None = 0, Three = 3, Five = 5, Ten = 10 }
-        #endregion
 
-        #region Private Members
-        int id;
-        string name;
-        string code;
-        string projectImgName;
-        string details;
-        int projectGroupID;
-        bool isActive;
-        bool isCompletable;
-        bool isActionable;
-        DateTime startDate;
-        DateTime dueDate;
-        DateTime endDate;
-        DTC.StatusEnum status;
-        DTC.RankEnum rank;
-        int order;
-        ShowHowManyTasksEnum showHowManyTasks;
-        DTC.RangeEnum monitoringFrequency;
-        string smartCode;
+        #region Members
+        public int ID { get; set; }
+        public string Name { get; set; }
+        public string Code { get; set; }
+        public string ProjectImgName { get; set; }
+        public string Details { get; set; }
+        public int ProjectGroupID { get; set; }
+        public bool IsCompletable { get; set; }
+        public bool IsActionable { get; set; }
+        public DateTime StartDate { get; set; }
+        public DateTime DueDate { get; set; }
+        public DateTime EndDate { get; set; }
+        public DTC.StatusEnum Status { get; set; }
+        public DTC.RankEnum Rank { get; set; }
+        public int Order { get; set; }
+        public ShowHowManyTasksEnum ShowHowManyTasks { get; set; }
+        public DTC.RangeEnum MonitoringFrequency { get; set; }
+        public string SmartCode { get; set; }
+        public float CompletionRate { get; set; }
         #endregion
 
         #region Constructors
         public ProjectInfo()
         {
-            id = 0;
-            name = "";
-            code = "";
-            projectImgName = string.Empty;
-            details = "";
-            projectGroupID = 0;
-            isActive = true;
-            isCompletable = true;
-            isActionable = false;
-            startDate = DateTime.MinValue;
-            dueDate = DateTime.MaxValue;
-            endDate = DateTime.MaxValue;
-            status = DTC.StatusEnum.Running;
-            rank = DTC.RankEnum.NoRank;
-            order = 0;
-            showHowManyTasks = ShowHowManyTasksEnum.All;
-            monitoringFrequency = DTC.RangeEnum.Month;
+            ID = 0;
+            Name = "";
+            Code = "";
+            ProjectImgName = string.Empty;
+            Details = "";
+            ProjectGroupID = 0;
+            IsCompletable = true;
+            IsActionable = false;
+            StartDate = DateTime.MinValue;
+            DueDate = DateTime.MaxValue;
+            EndDate = DateTime.MaxValue;
+            Status = DTC.StatusEnum.Running;
+            Rank = DTC.RankEnum.NoRank;
+            Order = 0;
+            ShowHowManyTasks = ShowHowManyTasksEnum.All;
+            MonitoringFrequency = DTC.RangeEnum.Month;
+            CompletionRate = 0;
         }
         public ProjectInfo(int id, string name)
         {
-            this.id = id;
-            this.name = name;
+            ID = id;
+            Name = name;
         }
         #endregion
 
@@ -69,12 +67,12 @@ namespace WebApiAzure.Models
         /// <returns>A smart code</returns>
         public string GetSmartCode(ProjectGroupInfo projectGroup, bool isShort)
         {
-            if (id > 0)
+            if (ID > 0)
             {
                 if (isShort)
-                    return projectGroup.Code + "▫" + code;
+                    return projectGroup.Code + "▫" + Code;
                 else
-                    return projectGroup.Code + " | " + name;
+                    return projectGroup.Code + " | " + Name;
             }
             else
             {
@@ -83,19 +81,19 @@ namespace WebApiAzure.Models
         }
         public int GetTotalDays()
         {
-            TimeSpan ts = dueDate.Subtract(startDate);
+            TimeSpan ts = DueDate.Subtract(StartDate);
             return (int)ts.TotalDays;
         }
         public int GetNumberOfDaysPassed()
         {
-            TimeSpan ts = DateTime.Today.Subtract(startDate);
+            TimeSpan ts = DateTime.Today.Subtract(StartDate);
             return (int)ts.TotalDays;
         }
         public int GetNumberOfDaysLeft()
         {
-            if (isCompletable)
+            if (IsCompletable)
             {
-                TimeSpan ts = dueDate.Subtract(DateTime.Today);
+                TimeSpan ts = DueDate.Subtract(DateTime.Today);
                 return (int)ts.TotalDays;
             }
             else
@@ -109,27 +107,6 @@ namespace WebApiAzure.Models
             if (result > 100) result = 100;
             return result;
         }
-        #endregion
-
-        #region Public Properties
-        public int ID { get { return id; } set { id = value; }}
-        public string Name { get { return name; } set { name = value; }}
-        public string Code { get { return code; } set { code = value; }}
-        public string ProjectImgName { get { return projectImgName; } set { projectImgName = value; } }
-        public string Details { get { return details; } set { details = value; }}
-        public int ProjectGroupID { get { return projectGroupID; } set { projectGroupID = value; }}
-        public bool IsActive { get { return isActive; } set { isActive = value; }}
-        public bool IsCompletable { get { return isCompletable; } set { isCompletable = value; }}
-        public bool IsActionable { get { return isActionable; } set { isActionable = value; }}
-        public DateTime StartDate { get { return startDate; } set { startDate = value; }}
-        public DateTime DueDate { get { return dueDate; } set { dueDate = value; }}
-        public DateTime EndDate { get { return endDate; } set { endDate = value; }}
-        public DTC.StatusEnum Status { get { return status; } set { status = value; }}
-        public DTC.RankEnum Rank { get { return rank; } set { rank = value; } }
-        public int Order { get { return order; } set { order = value; }}
-        public ShowHowManyTasksEnum ShowHowManyTasks { get { return showHowManyTasks; } set { showHowManyTasks = value; }}
-        public DTC.RangeEnum MonitoringFrequency { get { return monitoringFrequency; } set { monitoringFrequency = value; }}
-        public string SmartCode { get { return smartCode; } set { smartCode = value; } }
         #endregion
 
         object ICloneable.Clone() { return this.MemberwiseClone();}

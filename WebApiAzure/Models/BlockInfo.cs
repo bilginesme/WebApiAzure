@@ -19,8 +19,6 @@ namespace WebApiAzure
         bool hasDue;
         DTC.StatusEnum status;
         int order;
-        int chapterID;
-        int clusterID;
         string projectCode;
         int runningGoalID;
         #endregion
@@ -39,8 +37,6 @@ namespace WebApiAzure
             zoneID = 0;
             status = DTC.StatusEnum.Running;
             order = 0;
-            chapterID = 0;
-            clusterID = 0;
             projectCode = string.Empty;
             runningGoalID = 0;
         }
@@ -78,10 +74,9 @@ namespace WebApiAzure
         public bool HasDue { get { return hasDue; } set { hasDue = value; }}
         public DTC.StatusEnum Status { get { return status; } set { status = value; }}
         public int Order { get { return order; } set { order = value; }}
-        public int ChapterID { get { return chapterID; } set { chapterID = value; }}
-        public int ClusterID { get { return clusterID; } set { clusterID = value; }}
         public string ProjectCode { get { return projectCode; } set { projectCode = value; }}
         public int RunningGoalID { get { return runningGoalID; } set { runningGoalID = value; }}
+        public int AgeDays { get { return (int)DateTime.Today.Subtract(startDate).TotalDays; } }
         #endregion
 
         object ICloneable.Clone() { return this.MemberwiseClone(); }

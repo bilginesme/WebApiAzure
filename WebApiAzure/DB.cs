@@ -29,7 +29,6 @@ namespace WebApiAzure
             cmd.CommandType = System.Data.CommandType.Text;
             cmd.CommandText = strSQL;
 
-
             SqlDataReader reader = cmd.ExecuteReader();
             System.Data.DataTable dt = new System.Data.DataTable();
 
@@ -75,9 +74,6 @@ namespace WebApiAzure
 
             return result;
         }
-
-        
-        
 
         public static List<BlockInfo> GetBlocks(int projectID)
         {
@@ -217,6 +213,23 @@ namespace WebApiAzure
 
             return segments;
         }
+        public static List<BlockInfo> GetOldestBlocks(long projectID)
+        {
+            List<BlockInfo> blocks = new List<BlockInfo>();
+
+            string strSQL = "SELECT * " +
+                " FROM Blocks " +
+                " WHERE Blocks.ProjectID = " + projectID +
+                " AND StatusID = " + (int)DTC.StatusEnum.Running +
+                " ORDER BY StartDate";
+
+            DataTable dt = RunExecuteReader(strSQL);
+
+            foreach (DataRow dr in dt.Rows)
+                blocks.Add(GetBlock(dr));
+
+            return blocks;
+        }
         public static List<SegmentInfo> GetSegments(long blockID)
         {
             List<SegmentInfo> segmentsRaw = new List<SegmentInfo>();
@@ -283,9 +296,9 @@ namespace WebApiAzure
         public static string UpdateSegment(SegmentInfo segment)
         {
             string strSQL = "UPDATE Segments SET " +
-                " Title = '" + DTC.InputText(segment.Title, 255) + "'," +
+                " Title = '" + DTC.Control.InputText(segment.Title, 255) + "'," +
                 " BlockID = " + segment.BlockID + "," +
-                " Details = '" + DTC.InputText(segment.Details, 255) + "'," +
+                " Details = '" + DTC.Control.InputText(segment.Details, 255) + "'," +
                 " StartDate = " + DTC.ObtainGoodDT(segment.StartDate, true) + "," +
                 " EndDate = " + DTC.ObtainGoodDT(segment.EndDate, true) + "," +
                 " StatusID = " + (int)segment.Status +
@@ -298,8 +311,8 @@ namespace WebApiAzure
         {
             string strSQL = "INSERT Segments (BlockID, Title, Details, StartDate, EndDate, DueDate, HasDue, Size, StatusID) VALUES (" +
                 segment.BlockID + "," +
-                "'" + DTC.InputText(segment.Title, 255) + "'," +
-                "'" + DTC.InputText(segment.Details, 255) + "'," +      
+                "'" + DTC.Control.InputText(segment.Title, 255) + "'," +
+                "'" + DTC.Control.InputText(segment.Details, 255) + "'," +      
                 DTC.ObtainGoodDT(segment.StartDate, true) + "," +
                 DTC.ObtainGoodDT(DateTime.Today, true) + "," +
                 DTC.ObtainGoodDT(DateTime.Today, true) + "," +
@@ -425,9 +438,9 @@ namespace WebApiAzure
                     SQL = "INSERT INTO Tasks " +
                         " (Title, Details, IsCompleted, IsPrivilaged, " +
                         " ProjectGroupID, ProjectID, BlockID, SegmentID," +
-                        " StartDate, EndDate, TaskDate, IsActive, PlannedTime, RealTime," +
-                        " IsFloating, IsThing, CanBeep, ChapterID, OrderGeneral, OrderActive, " +
-                        " HasDue, DueDate, Seperator, SeperatorHour, TemplateID" +
+                        " StartDate, EndDate, TaskDate, PlannedTime, RealTime," +
+                        " IsFloating, IsThing, CanBeep, OrderGeneral, OrderActive, " +
+                        " Seperator, SeperatorHour, TemplateID" +
                         " ) VALUES (" +
                         "'" + DTC.Control.InputText(task.Title, 255) + "'," +
                         "'" + DTC.Control.InputText(task.Details, 999) + "'," +
@@ -440,17 +453,13 @@ namespace WebApiAzure
                         DTC.Date.ObtainGoodDT(task.StartDate, true) + "," +
                         DTC.Date.ObtainGoodDT(task.EndDate, true) + "," +
                         DTC.Date.ObtainGoodDT(task.TaskDate, true) + "," +
-                        Convert.ToInt16(task.IsActive) + "," +
                         task.PlannedTime + "," +
                         task.RealTime + "," +
                         Convert.ToInt16(task.IsFloating) + "," +
                         Convert.ToInt16(task.IsThing) + "," +
                         Convert.ToInt16(task.CanBeep) + "," +
-                        task.ChapterID + "," +
                         task.OrderGeneral + "," +
                         task.OrderActive + "," +
-                        Convert.ToInt16(task.HasDue) + "," +
-                        DTC.Date.ObtainGoodDT(task.DueDate, true) + "," +
                         (int)task.Seperator + "," +
                         "'" + task.SeperatorHour + "', " +
                         task.TemplateID +
@@ -471,17 +480,13 @@ namespace WebApiAzure
                         " StartDate = " + DTC.Date.ObtainGoodDT(task.StartDate, true) + "," +
                         " EndDate = " + DTC.Date.ObtainGoodDT(task.EndDate, true) + "," +
                         " TaskDate = " + DTC.Date.ObtainGoodDT(task.TaskDate, true) + "," +
-                        " IsActive = " + Convert.ToInt16(task.IsActive) + "," +
                         " PlannedTime = " + task.PlannedTime + "," +
                         " RealTime = " + task.RealTime + "," +
                         " IsFloating = " + Convert.ToInt16(task.IsFloating) + "," +
                         " IsThing = " + Convert.ToInt16(task.IsThing) + "," +
                         " CanBeep = " + Convert.ToInt16(task.CanBeep) + "," +
-                        " ChapterID = " + task.ChapterID + "," +
                         " OrderGeneral = " + task.OrderGeneral + "," +
                         " OrderActive = " + task.OrderActive + "," +
-                        " HasDue = " + Convert.ToInt16(task.HasDue) + "," +
-                        " DueDate = " + DTC.Date.ObtainGoodDT(task.DueDate, true) + "," +
                         " Seperator = " + (int)task.Seperator + "," +
                         " SeperatorHour = '" + task.SeperatorHour + "'," +
                         " TemplateID = " + task.TemplateID +
@@ -491,17 +496,25 @@ namespace WebApiAzure
 
                 return task.ID;
             }
-            public static bool DeleteTask(TaskInfo task)
+            public static void UpdateTaskOrder(long taskID, int order)
             {
-                string strSQL = "DELETE CoTasks WHERE TaskID = " + task.ID;
+                string  SQL = "UPDATE Tasks SET " +
+                        " OrderGeneral = " + order + "," +
+                        " OrderActive = " + order +  
+                        " WHERE TaskID = " + taskID;
+                RunNonQuery(SQL);
+            }
+            public static bool DeleteTask(long taskID)
+            {
+                string strSQL = "DELETE CoTasks WHERE TaskID = " + taskID;
                 RunNonQuery(strSQL);
 
-                strSQL = "DELETE Tasks WHERE TaskID = " + task.ID;
+                strSQL = "DELETE Tasks WHERE TaskID = " + taskID;
                 RunNonQuery(strSQL);
 
                 return true;
             }
-            public static void CloneTask(Dictionary<long, TaskInfo> tasks, TaskInfo task)
+            public static void CloneTask(List<TaskInfo> tasks, TaskInfo task)
             {
                 TaskInfo newTask = task;
 
@@ -526,7 +539,7 @@ namespace WebApiAzure
 
                     // create the new task
                     AddUpdateTask(newTask);
-                    Dictionary<long, TaskInfo> tasks = GetActiveTasks(destDate, destDate, TaskStatusEnum.Running);
+                    List<TaskInfo> tasks = GetTasks(destDate, destDate, TaskStatusEnum.Running);
                     InsertTaskPriority(tasks, newTask, 1);
 
                     // complete the original task
@@ -544,34 +557,31 @@ namespace WebApiAzure
             {
                 TaskInfo info = new TaskInfo();
 
-                info.ID = Convert.ToInt32(dr["TaskID"]);
-                info.Title = Convert.ToString(dr["Title"]);
-                info.Details = Convert.ToString(dr["Details"]);
-                info.IsCompleted = Convert.ToBoolean(dr["IsCompleted"]);
-                info.IsPrivilaged = Convert.ToBoolean(dr["IsPrivilaged"]);
-                info.ProjectGroupID = Convert.ToInt32(dr["ProjectGroupID"]);
-                info.ProjectID = Convert.ToInt32(dr["ProjectID"]);
-                info.BlockID = Convert.ToInt32(dr["BlockID"]);
-                info.SegmentID = Convert.ToInt32(dr["SegmentID"]);
-                info.StartDate = Convert.ToDateTime(dr["StartDate"]);
-                info.EndDate = Convert.ToDateTime(dr["EndDate"]);
-                info.TaskDate = Convert.ToDateTime(dr["TaskDate"]);
-                info.IsActive = Convert.ToBoolean(dr["IsActive"]);
-                info.PlannedTime = Convert.ToInt16(dr["PlannedTime"]);
-                info.RealTime = Convert.ToInt16(dr["RealTime"]);
-                info.IsFloating = Convert.ToBoolean(dr["IsFloating"]);
-                info.IsThing = Convert.ToBoolean(dr["IsThing"]);
-                info.CanBeep = Convert.ToBoolean(dr["CanBeep"]);
-                info.ChapterID = Convert.ToInt32(dr["ChapterID"]);
-                info.OrderGeneral = Convert.ToInt16(dr["OrderGeneral"]);
-                info.OrderActive = Convert.ToInt16(dr["OrderActive"]);
-                info.HasDue = Convert.ToBoolean(dr["HasDue"]);
-                if (dr["DueDate"] != DBNull.Value) info.DueDate = Convert.ToDateTime(dr["DueDate"]);
-                info.Seperator = (TaskInfo.SeperatorEnum)Convert.ToInt16(dr["Seperator"]);
-                info.SeperatorHour = Convert.ToString(dr["SeperatorHour"]);
-                info.TemplateID = Convert.ToInt32(dr["TemplateID"]);
-
-                info.CoTasks = CoTasks.GetCoTasks(info);
+                if(dr != null)
+                {
+                    info.ID = Convert.ToInt32(dr["TaskID"]);
+                    info.Title = Convert.ToString(dr["Title"]);
+                    info.Details = Convert.ToString(dr["Details"]);
+                    info.IsCompleted = Convert.ToBoolean(dr["IsCompleted"]);
+                    info.IsPrivilaged = Convert.ToBoolean(dr["IsPrivilaged"]);
+                    info.ProjectGroupID = Convert.ToInt32(dr["ProjectGroupID"]);
+                    info.ProjectID = Convert.ToInt32(dr["ProjectID"]);
+                    info.BlockID = Convert.ToInt32(dr["BlockID"]);
+                    info.SegmentID = Convert.ToInt32(dr["SegmentID"]);
+                    info.StartDate = Convert.ToDateTime(dr["StartDate"]);
+                    info.EndDate = Convert.ToDateTime(dr["EndDate"]);
+                    info.TaskDate = Convert.ToDateTime(dr["TaskDate"]);
+                    info.PlannedTime = Convert.ToInt16(dr["PlannedTime"]);
+                    info.RealTime = Convert.ToInt16(dr["RealTime"]);
+                    info.IsFloating = Convert.ToBoolean(dr["IsFloating"]);
+                    info.IsThing = Convert.ToBoolean(dr["IsThing"]);
+                    info.CanBeep = Convert.ToBoolean(dr["CanBeep"]);
+                    info.OrderGeneral = Convert.ToInt16(dr["OrderGeneral"]);
+                    info.OrderActive = Convert.ToInt16(dr["OrderActive"]);
+                    info.Seperator = (TaskInfo.SeperatorEnum)Convert.ToInt16(dr["Seperator"]);
+                    info.SeperatorHour = Convert.ToString(dr["SeperatorHour"]);
+                    info.TemplateID = Convert.ToInt32(dr["TemplateID"]);
+                }
 
                 return info;
             }
@@ -600,17 +610,17 @@ namespace WebApiAzure
                 
                 return GetTask(GetSingleDR(dt, true));
             }
-            public static Dictionary<long, TaskInfo> GetTasks(string strSQL)
+            public static List<TaskInfo> GetTasks(string strSQL)
             {
-                Dictionary<long, TaskInfo> dict = new Dictionary<long, TaskInfo>();
+                List<TaskInfo> data = new List<TaskInfo>();
 
                 DataTable dt = RunExecuteReader(strSQL);
                 foreach (DataRow dr in dt.Rows)
-                    dict.Add(Convert.ToInt32(dr["TaskID"]), GetTask(dr));
+                    data.Add(GetTask(dr));
                 
-                return dict;
+                return data;
             }
-            public static Dictionary<long, TaskInfo> GetTasks(ProjectInfo project, TaskStatusEnum taskStatus)
+            public static List<TaskInfo> GetTasks(ProjectInfo project, TaskStatusEnum taskStatus)
             {
                 string filterSQL = "";
 
@@ -628,7 +638,7 @@ namespace WebApiAzure
 
                 return GetTasks(SQL);
             }
-            public static Dictionary<long, TaskInfo> GetOldestActionableTasks()
+            public static List<TaskInfo> GetOldestActionableTasks()
             {
                 string strSQL = "SELECT Tasks.*" +
                     " FROM Tasks INNER JOIN Projects ON Tasks.ProjectID = Projects.ProjectID" +
@@ -640,7 +650,7 @@ namespace WebApiAzure
 
                 return GetTasks(strSQL);
             }
-            public static Dictionary<long, TaskInfo> GetTasks(BlockInfo block, TaskStatusEnum taskStatus)
+            public static List<TaskInfo> GetTasks(BlockInfo block, TaskStatusEnum taskStatus)
             {
                 string filterSQL = "";
 
@@ -658,7 +668,7 @@ namespace WebApiAzure
 
                 return GetTasks(strSQL);
             }
-            public static Dictionary<long, TaskInfo> GetTasks(SegmentInfo segment, TaskStatusEnum taskStatus)
+            public static List<TaskInfo> GetTasks(SegmentInfo segment, TaskStatusEnum taskStatus)
             {
                 string filterSQL = "";
 
@@ -676,7 +686,7 @@ namespace WebApiAzure
 
                 return GetTasks(strSQL);
             }
-            public static Dictionary<long, TaskInfo> GetActiveTasks(DateTime startDate, DateTime endDate, TaskStatusEnum taskStatus)
+            public static List<TaskInfo> GetTasks(DateTime startDate, DateTime endDate, TaskStatusEnum taskStatus)
             {
                 string filterSQL = "";
 
@@ -690,13 +700,30 @@ namespace WebApiAzure
                 string strSQL = "SELECT * FROM Tasks " +
                     " WHERE TaskDate >= " + DTC.Date.ObtainGoodDT(startDate, true) +
                     " AND TaskDate <= " + DTC.Date.ObtainGoodDT(endDate, true) +
-                    " AND IsActive = 1 " +
                     filterSQL +
                     " ORDER BY IsCompleted ASC, OrderActive ASC";
 
                 return GetTasks(strSQL);
             }
-            public static Dictionary<long, TaskInfo> GetPrivilagedTasks()
+            public static List<TaskInfo> GetTasks(DateTime theDate, TaskStatusEnum taskStatus)
+            {
+                string filterSQL = "";
+
+                if (taskStatus == TaskStatusEnum.Running)
+                    filterSQL = " AND IsCompleted=0";
+                else if (taskStatus == TaskStatusEnum.Completed)
+                    filterSQL = " AND IsCompleted=1";
+                else if (taskStatus == TaskStatusEnum.All)
+                    filterSQL = "";
+
+                string strSQL = "SELECT * FROM Tasks " +
+                    " WHERE TaskDate = " + DTC.Date.ObtainGoodDT(theDate, true) +
+                    filterSQL +
+                    " ORDER BY IsCompleted ASC, OrderActive ASC";
+
+                return GetTasks(strSQL);
+            }
+            public static List<TaskInfo> GetPrivilagedTasks()
             {
                 string strSQL = "SELECT * FROM Tasks " +
                     " WHERE IsCompleted = 0" +
@@ -706,7 +733,7 @@ namespace WebApiAzure
 
                 return GetTasks(strSQL);
             }
-            public static Dictionary<long, TaskInfo> GetActionableTasks()
+            public static List<TaskInfo> GetActionableTasks()
             {
                 string strSQL = "SELECT Tasks.* FROM Tasks, Projects " +
                     " WHERE Tasks.ProjectID = Projects.ProjectID " +
@@ -718,6 +745,7 @@ namespace WebApiAzure
 
                 return GetTasks(strSQL);
             }
+
             /// <summary>
             /// Gets all the most popular task titles
             /// </summary>
@@ -895,14 +923,13 @@ namespace WebApiAzure
                         }
                     }
                 }
-                
 
                 return days;
             }
 
-            public static void InsertTaskPriority(Dictionary<long, TaskInfo> tasks, TaskInfo task, int order)
+            public static void InsertTaskPriority(List<TaskInfo> tasks, TaskInfo task, int order)
             {
-                foreach (TaskInfo info in tasks.Values)
+                foreach (TaskInfo info in tasks)
                 {
                     if (info.OrderActive >= order) info.OrderActive++;
                     ChangeTaskOrderActive(info, info.OrderActive);
@@ -1132,17 +1159,15 @@ namespace WebApiAzure
             {
                 if (taskTemplate.ID > 0)
                 {
-                    Dictionary<long, TaskInfo> tasks = Tasks.GetTasks("SELECT * FROM Tasks WHERE TemplateID = " + taskTemplate.ID);
-                    foreach (TaskInfo task in tasks.Values)
-                    {
+                    List<TaskInfo> tasks = Tasks.GetTasks("SELECT * FROM Tasks WHERE TemplateID = " + taskTemplate.ID);
+                    foreach (TaskInfo task in tasks)
                         RunNonQuery("DELETE CoTasks WHERE TaskID=" + task.ID);
-                    }
 
                     string SQL = "DELETE Tasks WHERE TemplateID = " + taskTemplate.ID;
                     RunNonQuery(SQL);
                 }
             }
-            public static Dictionary<long, TaskInfo> GetTasksWithTemplate(TaskTemplateInfo taskTemplate)
+            public static List<TaskInfo> GetTasksWithTemplate(TaskTemplateInfo taskTemplate)
             {
                 string SQL = "SELECT * FROM Tasks WHERE TemplateID=" + taskTemplate.ID +
                     " ORDER BY TrayZOrder";
@@ -1223,14 +1248,10 @@ namespace WebApiAzure
                 info.ID = Convert.ToInt32(dr["ProjectGroupID"]);
                 info.Name = Convert.ToString(dr["ProjectGroupName"]);
                 info.Code = Convert.ToString(dr["ProjectGroupCode"]);
-                info.IsActive = Convert.ToBoolean(dr["IsActive"]);
-                info.IsActionable = Convert.ToBoolean(dr["IsActionable"]);
-                info.IsCompletable = Convert.ToBoolean(dr["IsCompletable"]);
-                info.IsCompleted = Convert.ToBoolean(dr["IsCompleted"]);
                 if (dr["StartDate"] != DBNull.Value) info.StartDate = Convert.ToDateTime(dr["StartDate"]);
-                if (dr["DueDate"] != DBNull.Value) info.DueDate = Convert.ToDateTime(dr["DueDate"]);
                 if (dr["EndDate"] != DBNull.Value) info.EndDate = Convert.ToDateTime(dr["EndDate"]);
                 info.ProjectTypeID = Convert.ToInt16(dr["ProjectTypeID"]);
+                info.Status = (DTC.StatusEnum) Convert.ToInt16(dr["StatusID"]);
 
                 return info;
             }
@@ -1247,24 +1268,21 @@ namespace WebApiAzure
                 
                 return info;
             }
-            /// <summary>
-            /// Gets dictionary of project groups
-            /// </summary>
-            public static Dictionary<int, ProjectGroupInfo> GetProjectGroups()
+            public static List<ProjectGroupInfo> GetProjectGroups()
             {
                 string strSQL = "SELECT * " +
                      " FROM ProjectGroups " +
                      " ORDER BY ProjectGroupName";
                 return GetProjectGroups(strSQL);
             }
-            public static Dictionary<int, ProjectGroupInfo> GetProjectGroups(string strSQL)
+            private static List<ProjectGroupInfo> GetProjectGroups(string strSQL)
             {
-                Dictionary<int, ProjectGroupInfo> dict = new Dictionary<int, ProjectGroupInfo>();
+                List<ProjectGroupInfo> data = new List<ProjectGroupInfo>();
                 DataTable dt = RunExecuteReader(strSQL);
                 foreach (DataRow dr in dt.Rows)
-                    dict.Add(Convert.ToInt32(dr["ProjectGroupID"]), GetProjectGroup(dr));
+                    data.Add(GetProjectGroup(dr));
                 
-                return dict;
+                return data;
             }
             /// <summary>
             /// Gets dictionary of popular project groups
@@ -1306,21 +1324,15 @@ namespace WebApiAzure
                 if (projectGroup.ID == 0)
                 {
                     SQL = "SET NOCOUNT ON INSERT INTO ProjectGroups" +
-                    " (ProjectGroupCode,ProjectGroupName,ProjectTypeID," +
-                    " IsActive,IsActionable,IsCompletable,IsCompleted,StatusID," +
-                    " StartDate,EndDate,DueDate)" +
+                    " (ProjectGroupCode, ProjectGroupName, ProjectTypeID, " +
+                    " StatusID, StartDate, EndDate)" +
                     " VALUES (" +
                     "'" + DTC.Control.InputText(projectGroup.Code, 5) + "'," +
                     "'" + DTC.Control.InputText(projectGroup.Name, 25) + "'," +
                     projectGroup.ProjectTypeID + "," +
-                    Convert.ToInt32(projectGroup.IsActive) + "," +
-                    Convert.ToInt32(projectGroup.IsActionable) + "," +
-                    Convert.ToInt32(projectGroup.IsCompletable) + "," +
-                    Convert.ToInt32(projectGroup.IsCompleted) + "," +
                     (int)projectGroup.Status + "," +
                     DTC.Date.ObtainGoodDT(projectGroup.StartDate, true) + "," +
                     DTC.Date.ObtainGoodDT(projectGroup.EndDate, true) + "," +
-                    DTC.Date.ObtainGoodDT(projectGroup.DueDate, true) +
                     ") SELECT SCOPE_IDENTITY() AS ProjectGroupID";
                     projectGroup.ID = (int)RunExecuteScalar(SQL);
                 }
@@ -1330,14 +1342,9 @@ namespace WebApiAzure
                     " ProjectGroupCode = '" + DTC.Control.InputText(projectGroup.Code, 5) + "'," +
                     " ProjectGroupName = '" + DTC.Control.InputText(projectGroup.Name, 25) + "'," +
                     " ProjectTypeID = " + projectGroup.ProjectTypeID + "," +
-                    " IsActive = " + Convert.ToInt32(projectGroup.IsActive) + "," +
-                    " IsActionable = " + Convert.ToInt32(projectGroup.IsActionable) + "," +
-                    " IsCompletable = " + Convert.ToInt32(projectGroup.IsCompletable) + "," +
-                    " IsCompleted = " + Convert.ToInt32(projectGroup.IsCompleted) + "," +
                     " StatusID = " + (int)projectGroup.Status + "," +
                     " StartDate = " + DTC.Date.ObtainGoodDT(projectGroup.StartDate, true) + "," +
-                    " EndDate = " + DTC.Date.ObtainGoodDT(projectGroup.EndDate, true) + "," +
-                    " DueDate = " + DTC.Date.ObtainGoodDT(projectGroup.DueDate, true) +
+                    " EndDate = " + DTC.Date.ObtainGoodDT(projectGroup.EndDate, true) + 
                     " WHERE ProjectGroupID = " + projectGroup.ID;
                     RunNonQuery(SQL);
                 }
@@ -1411,10 +1418,8 @@ namespace WebApiAzure
                 {
                     SQL = "SET NOCOUNT ON INSERT INTO Projects " +
                           " (ProjectCode, ProjectName, ProjectGroupID, ProjectDetails, " +
-                          " StatusID, RankID, IsActive, IsCompletable, IsActionable, " +
-                          " StartDate, EndDate, DueDate, TheOrder, Leverage, " +
-                          " PlannerSizeWidth, PlannerSizeHeight, XIconID, LocationX, LocationY," +
-                          " IsMinimized, MinLocationX, MinLocationY, ZOrder, ShowHowManyTasks, MonitoringFrequency)" +
+                          " StatusID, RankID, IsCompletable, IsActionable, " +
+                          " StartDate, EndDate, DueDate, TheOrder, ShowHowManyTasks, MonitoringFrequency)" +
                           " VALUES (" +
                           "'" + DTC.Control.InputText(project.Code, 5) + "'," +
                           "'" + DTC.Control.InputText(project.Name, 25) + "'," +
@@ -1422,7 +1427,6 @@ namespace WebApiAzure
                           "'" + DTC.Control.InputText(project.Details, 255) + "'," +
                           Convert.ToInt16(project.Status) + "," +
                           Convert.ToInt16(project.Rank) + "," +
-                          Convert.ToInt16(project.IsActive) + "," +
                           Convert.ToInt16(project.IsCompletable) + "," +
                           Convert.ToInt16(project.IsActionable) + "," +
                           DTC.Date.ObtainGoodDT(project.StartDate, true) + "," +
@@ -1443,7 +1447,6 @@ namespace WebApiAzure
                         " ProjectDetails = '" + DTC.Control.InputText(project.Details, 255) + "'," +
                         " StatusID = " + Convert.ToInt16(project.Status) + "," +
                         " RankID = " + Convert.ToInt16(project.Rank) + "," +
-                        " IsActive = " + Convert.ToInt16(project.IsActive) + "," +
                         " IsCompletable = " + Convert.ToInt16(project.IsCompletable) + "," +
                         " IsActionable = " + Convert.ToInt16(project.IsActionable) + "," +
                         " StartDate = " + DTC.Date.ObtainGoodDT(project.StartDate, true) + "," +
@@ -1467,7 +1470,6 @@ namespace WebApiAzure
                 info.Code = Convert.ToString(dr["ProjectCode"]);
                 info.ProjectImgName = Convert.ToString(dr["ProjectImgName"]);
                 info.Details = Convert.ToString(dr["ProjectDetails"]);
-                info.IsActive = Convert.ToBoolean(dr["IsActive"]);
                 info.IsCompletable = Convert.ToBoolean(dr["IsCompletable"]);
                 info.IsActionable = Convert.ToBoolean(dr["IsActionable"]);
                 if (dr["StartDate"] != DBNull.Value) info.StartDate = Convert.ToDateTime(dr["StartDate"]);
@@ -1477,6 +1479,7 @@ namespace WebApiAzure
                 info.Status = (DTC.StatusEnum)Convert.ToInt16(dr["StatusID"]);
                 info.Rank = (DTC.RankEnum)Convert.ToInt16(dr["RankID"]);
                 info.Order = Convert.ToInt32(dr["TheOrder"]);
+                info.CompletionRate = Convert.ToSingle(dr["CompletionRate"]);
                 info.ShowHowManyTasks = (ProjectInfo.ShowHowManyTasksEnum)Convert.ToInt16(dr["ShowHowManyTasks"]);
                 info.MonitoringFrequency = (DTC.RangeEnum)Convert.ToInt16(dr["MonitoringFrequency"]);
 
@@ -1517,6 +1520,18 @@ namespace WebApiAzure
                      " ORDER BY TheOrder";
                 return GetProjects(strSQL);
             }
+            public static List<ProjectInfo> GetProjects(int projectGroupID, DTC.StatusEnum status)
+            {
+                string strSQLStatus = string.Empty;
+                if (status != DTC.StatusEnum.NA)
+                    strSQLStatus = " AND StatusID = " + (int)status;
+
+                string strSQL = "SELECT * FROM Projects" +
+                    " WHERE ProjectGroupID = " + projectGroupID +
+                    strSQLStatus +
+                    " ORDER BY ProjectName";
+                return GetProjects(strSQL);
+            }
             public static List<ProjectInfo> GetProjectsCompleted(DateTime startDate, DateTime endDate)
             {
                 string strSQL = "SELECT * " +
@@ -1527,13 +1542,28 @@ namespace WebApiAzure
                      " ORDER BY EndDate DESC";
                 return GetProjects(strSQL);
             }
+
+            public static List<ProjectInfo> GetProjectsRelatedToTasks(DateTime taskDate)
+            {
+                string strSQL = "SELECT Projects.* " +
+                    " FROM Tasks " +
+                    " INNER JOIN " +
+                    " Projects ON Tasks.ProjectID = Projects.ProjectID " +
+                    " WHERE Tasks.TemplateID = 0" +
+                    " AND Tasks.TaskDate = " + DTC.ObtainGoodDT(taskDate, true);
+                return GetProjects(strSQL);
+            }
+
             public static List<ProjectSnapshotInfo> GetProjectsSnapshot()
             {
                 List<ProjectSnapshotInfo> data = new List<ProjectSnapshotInfo>();
                 DateTime dtTreshold = DateTime.Now.AddDays(-30);
 
-                string strSQL = "SELECT Projects.ProjectID, Projects.StatusID, Projects.RankID, Projects.ProjectName, Projects.ProjectCode, SUM(Tasks.RealTime) AS RealTimeTotal, " +
-                    " ProjectGroups.ProjectGroupCode, Projects.DueDate, Projects.StartDate, ProjectImgName " +
+                string strSQL = "SELECT Projects.ProjectID, Projects.StatusID, Projects.RankID, Projects.ProjectName, Projects.ProjectCode,  Projects.ProjectDetails, " +
+                    " SUM(Tasks.RealTime) AS RealTimeTotal, " +
+                    " ProjectGroups.ProjectGroupCode, Projects.DueDate, Projects.StartDate, Projects.CompletionRate, " +
+                    " Projects.EstimatedCompletionDate, Projects.EstimatedCompletionDateBasedOnLast30Days, Projects.HoursNeededToComplete, Projects.WorkPerDayNeededForDueDate, " +
+                    " Projects.ProjectImgName " +
                     " FROM Projects " +
                     " INNER JOIN Tasks ON Projects.ProjectID = Tasks.ProjectID " +
                     " INNER JOIN ProjectGroups ON Projects.ProjectGroupID = ProjectGroups.ProjectGroupID " +
@@ -1541,14 +1571,19 @@ namespace WebApiAzure
                     " AND Projects.StatusID = 1 " +
                     " AND Projects.RankID > 0 " +
                     " AND Tasks.TaskDate >= " + DTC.ObtainGoodDT(dtTreshold, false) +
-                    " GROUP BY Projects.ProjectID, Projects.StatusID, Projects.RankID, Projects.ProjectName, Projects.ProjectCode, " +
-                    " ProjectGroups.ProjectGroupCode, Projects.DueDate, Projects.StartDate, ProjectImgName ";
+                    " GROUP BY Projects.ProjectID, Projects.StatusID, Projects.RankID, Projects.ProjectName, Projects.ProjectCode, Projects.ProjectDetails," +
+                    " ProjectGroups.ProjectGroupCode, Projects.DueDate, Projects.StartDate, Projects.CompletionRate, " +
+                    " Projects.EstimatedCompletionDate, Projects.EstimatedCompletionDateBasedOnLast30Days, Projects.HoursNeededToComplete, Projects.WorkPerDayNeededForDueDate, " +
+                    " Projects.ProjectImgName ";
                 DataTable dt = RunExecuteReader(strSQL);
 
                 foreach (DataRow dr in dt.Rows)
                 {
                     DateTime dtStartDate = Convert.ToDateTime(dr["StartDate"]);
-                    DateTime dtDueDate = Convert.ToDateTime(dr["DueDate"]);
+                    DateTime dtDueDate = DateTime.MaxValue;
+
+                    if (dr["DueDate"] != DBNull.Value)
+                        dtDueDate = Convert.ToDateTime(dr["DueDate"]);
 
                     ProjectSnapshotInfo projectSnapshot = new ProjectSnapshotInfo();
                     projectSnapshot.ProjectID = Convert.ToInt32(dr["ProjectID"]);
@@ -1557,14 +1592,22 @@ namespace WebApiAzure
                     projectSnapshot.ProjectCode = Convert.ToString(dr["ProjectCode"]);
                     projectSnapshot.ProjectName = Convert.ToString(dr["ProjectName"]);
                     projectSnapshot.ProjectGroupCode = Convert.ToString(dr["ProjectGroupCode"]);
+                    projectSnapshot.Details = Convert.ToString(dr["ProjectDetails"]);
                     projectSnapshot.RealTime = Convert.ToSingle(dr["RealTimeTotal"]);
-                    projectSnapshot.DueDate = DTC.GetSmartDateTime(dtDueDate, false);
-                    projectSnapshot.StartDate = DTC.GetSmartDateTime(dtStartDate, false);
+                    projectSnapshot.DueDate = dtDueDate;
+                    projectSnapshot.StartDate = dtStartDate;
+                    if(dr["EstimatedCompletionDate"] != DBNull.Value)
+                        projectSnapshot.EstimatedCompletionDate = Convert.ToDateTime(dr["EstimatedCompletionDate"]);
+                    if (dr["EstimatedCompletionDateBasedOnLast30Days"] != DBNull.Value)
+                        projectSnapshot.EstimatedCompletionDateBasedOnLast30Days = Convert.ToDateTime(dr["EstimatedCompletionDateBasedOnLast30Days"]);
+                    projectSnapshot.CompletionRate = Convert.ToSingle(dr["CompletionRate"]);
+                    projectSnapshot.HoursNeededToComplete = Convert.ToSingle(dr["HoursNeededToComplete"]);
+                    projectSnapshot.WorkPerDayNeededForDueDate = Convert.ToSingle(dr["WorkPerDayNeededForDueDate"]);
                     projectSnapshot.ProjectImgName = Convert.ToString(dr["ProjectImgName"]);
                     projectSnapshot.PercentCompleted = 67;
 
                     projectSnapshot.NumDaysRemaining = 0;
-                    if (dtDueDate > DateTime.Today)
+                    if (dtDueDate > DateTime.Today && dtDueDate < DateTime.MaxValue)
                         projectSnapshot.NumDaysRemaining = (int)dtDueDate.Subtract(DateTime.Today).TotalDays;
 
                     data.Add(projectSnapshot);
@@ -1637,15 +1680,19 @@ namespace WebApiAzure
             {
                 ProjectSnapshotInfo projectSnapshot = new ProjectSnapshotInfo();
 
-                string strSQL = "SELECT Projects.ProjectID, Projects.StatusID, Projects.RankID, Projects.ProjectName, " +
-                    " Projects.ProjectCode, SUM(Tasks.RealTime) AS RealTimeTotal, ProjectGroups.ProjectGroupCode, "  +
-                    " Projects.DueDate, Projects.StartDate, Projects.ProjectImgName " +
+                string strSQL = "SELECT Projects.ProjectID, Projects.StatusID, Projects.RankID, Projects.ProjectName, Projects.ProjectCode, Projects.ProjectDetails, " +
+                    " SUM(Tasks.RealTime) AS RealTimeTotal, ProjectGroups.ProjectGroupCode, " +
+                    " Projects.DueDate, Projects.StartDate, " +
+                    " Projects.EstimatedCompletionDate, Projects.EstimatedCompletionDateBasedOnLast30Days, Projects.HoursNeededToComplete, Projects.WorkPerDayNeededForDueDate," +
+                    " Projects.ProjectImgName " +
                     " FROM Projects " +
                     " INNER JOIN ProjectGroups ON Projects.ProjectGroupID = ProjectGroups.ProjectGroupID " +
                     " LEFT OUTER JOIN Tasks ON Projects.ProjectID = Tasks.ProjectID " +
                     " WHERE Projects.ProjectID = " + projectID +
-                    " GROUP BY Projects.ProjectID, Projects.StatusID, Projects.RankID, Projects.ProjectName, Projects.ProjectCode, " +
-                    " ProjectGroups.ProjectGroupCode, Projects.DueDate, Projects.StartDate, Projects.ProjectImgName";
+                    " GROUP BY Projects.ProjectID, Projects.StatusID, Projects.RankID, Projects.ProjectName, Projects.ProjectCode, Projects.ProjectDetails, " +
+                    " ProjectGroups.ProjectGroupCode, Projects.DueDate, Projects.StartDate, " +
+                    " Projects.EstimatedCompletionDate, Projects.EstimatedCompletionDateBasedOnLast30Days, Projects.HoursNeededToComplete, Projects.WorkPerDayNeededForDueDate, " +
+                    " Projects.ProjectImgName";
                 DataTable dt = RunExecuteReader(strSQL);
 
                 if (dt.Rows.Count == 1)
@@ -1660,12 +1707,19 @@ namespace WebApiAzure
                     projectSnapshot.ProjectCode = Convert.ToString(dr["ProjectCode"]);
                     projectSnapshot.ProjectName = Convert.ToString(dr["ProjectName"]);
                     projectSnapshot.ProjectGroupCode = Convert.ToString(dr["ProjectGroupCode"]);
-                    if(dr["RealTimeTotal"] != DBNull.Value)
+                    projectSnapshot.Details = Convert.ToString(dr["ProjectDetails"]);
+                    if (dr["RealTimeTotal"] != DBNull.Value)
                         projectSnapshot.RealTime = Convert.ToSingle(dr["RealTimeTotal"]);
-                    projectSnapshot.StartDate = DTC.GetSmartDateTime(dtStartDate, false);
-                    projectSnapshot.DueDate = DTC.GetSmartDateTime(dtDueDate, false);
+                    projectSnapshot.StartDate = dtStartDate;
+                    projectSnapshot.DueDate = dtDueDate;
+                    if (dr["EstimatedCompletionDate"] != DBNull.Value)
+                        projectSnapshot.EstimatedCompletionDate = Convert.ToDateTime(dr["EstimatedCompletionDate"]);
+                    if (dr["EstimatedCompletionDateBasedOnLast30Days"] != DBNull.Value)
+                        projectSnapshot.EstimatedCompletionDateBasedOnLast30Days = Convert.ToDateTime(dr["EstimatedCompletionDateBasedOnLast30Days"]);
                     projectSnapshot.ProjectImgName = Convert.ToString(dr["ProjectImgName"]);
                     projectSnapshot.PercentCompleted = GetProjectPerformance(projectID);
+                    projectSnapshot.HoursNeededToComplete = Convert.ToSingle(dr["HoursNeededToComplete"]);
+                    projectSnapshot.WorkPerDayNeededForDueDate = Convert.ToSingle(dr["WorkPerDayNeededForDueDate"]);
 
                     projectSnapshot.NumDaysRemaining = 0;
                     if (dtDueDate > DateTime.Today)
@@ -1700,7 +1754,7 @@ namespace WebApiAzure
                     }
                 }
 
-                projectSnapshot.EternalTotalTime = GetProjectEternalTotalTimes(projectID);
+                projectSnapshot.EternalTotalTime = GetProjectEternalTotalTime(projectID);
 
                 return projectSnapshot;
             }
@@ -1794,7 +1848,7 @@ namespace WebApiAzure
 
                 return data;
             }
-            public static float GetProjectEternalTotalTimes(long projectID)
+            public static float GetProjectEternalTotalTime(long projectID)
             {
                 float result = 0;
 
@@ -1850,13 +1904,8 @@ namespace WebApiAzure
                 ProjectGroupInfo newPG = new ProjectGroupInfo();
 
                 newPG.Code = project.Code;
-                newPG.DueDate = project.DueDate;
                 newPG.EndDate = project.EndDate;
                 newPG.StartDate = project.StartDate;
-                newPG.IsActionable = project.IsActionable;
-                newPG.IsActive = project.IsActive;
-                newPG.IsCompletable = project.IsCompletable;
-                newPG.IsCompleted = false;
                 newPG.Name = project.Name;
                 newPG.Status = project.Status;
                 newPG.ProjectTypeID = ProjectGroups.GetProjectGroup(project.ProjectGroupID).ProjectTypeID;
@@ -2002,6 +2051,23 @@ namespace WebApiAzure
                         totalHours = Convert.ToSingle(dr["TOTAL"]);
                 }
                 
+                return totalHours;
+            }
+            public static float GetTotalHoursLast30Days(ProjectInfo project)
+            {
+                float totalHours = 0;
+                string strSQL = "SELECT CONVERT(float, SUM(RealTime)) / 60 AS TOTAL " +
+                    " FROM Tasks" +
+                    " WHERE ProjectID = " + project.ID +
+                    " AND TaskDate >= " + DTC.ObtainGoodDT(DateTime.Today.AddDays(-30) ,true);
+                DataTable dt = RunExecuteReader(strSQL);
+                if (dt.Rows.Count > 0)
+                {
+                    DataRow dr = dt.Rows[0];
+                    if (dr["TOTAL"] != DBNull.Value)
+                        totalHours = Convert.ToSingle(dr["TOTAL"]);
+                }
+
                 return totalHours;
             }
             public static Dictionary<int, ProjectPerfInfo> GetPerformanceFigures(List<ProjectInfo> projects, bool addToLog)
@@ -2215,24 +2281,56 @@ namespace WebApiAzure
             public static int AddProjectLog(int projectID, DateTime date, float performance)
             {
                 string sql;
-                sql = "DELETE ProjectLog " +
+                sql = "DELETE ProjectLogNG " +
                     " WHERE ProjectID = " + projectID +
                     " AND TheDate = " + DTC.Date.ObtainGoodDT(date, true);
                 RunNonQuery(sql);
 
-                sql = "INSERT INTO ProjectLog " +
+                sql = "INSERT INTO ProjectLogNG " +
                     " (ProjectID, TheDate, Performance) VALUES (" +
                     projectID + "," +
                     DTC.Date.ObtainGoodDT(date, true) + "," +
                     DTC.Control.CommaToDot(performance) +
-                    ")  SELECT SCOPE_IDENTITY() AS ProjectLogID";
+                    ")  SELECT SCOPE_IDENTITY() AS ID";
                 return (int)RunExecuteScalar(sql);
+            }
+            public static List<Tuple<int, int, float>> GetWeeklyAverageLogs(int projectID, int nTop)
+            {
+                List<Tuple<int, int, float>> dataTemp = new List<Tuple<int, int, float>>();
+                List<Tuple<int, int, float>> data = new List<Tuple<int, int, float>>();
+                
+
+                string strSQL = "SELECT { fn WEEK(TheDate) } AS THE_WEEK, { fn YEAR(TheDate) } AS THE_YEAR, AVG(Performance) AS THE_AVERAGE " +
+                    " FROM ProjectLogNG " +
+                    " WHERE ProjectID = " + projectID +
+                    " GROUP BY { fn WEEK(TheDate) }, { fn YEAR(TheDate) } " +
+                    " ORDER BY THE_YEAR ASC, THE_WEEK ASC";
+
+                DataTable dt = RunExecuteReader(strSQL);
+                foreach (DataRow dr in dt.Rows)
+                {
+                    dataTemp.Add(new Tuple<int, int, float>(Convert.ToInt16(dr["THE_YEAR"]), Convert.ToInt16(dr["THE_WEEK"]), Convert.ToSingle(dr["THE_AVERAGE"])));
+                }
+
+                int counter = 0;
+                for (int i=dataTemp.Count - 1;i>=0;i--)
+                {
+                    if (counter < nTop)
+                        data.Add(dataTemp[i]);
+                    else
+                        break;
+
+                    counter++;
+                }
+                data.Reverse();
+
+                return data;
             }
             public static float GetDailyProjectLog(ProjectInfo project, DateTime date)
             {
                 float performance = 0;
 
-                string strSQL = "SELECT * FROM ProjectLog " +
+                string strSQL = "SELECT * FROM ProjectLogNG " +
                     " WHERE ProjectID = " + project.ID +
                     " AND TheDate = " + DTC.Date.ObtainGoodDT(date, true);
                 DataTable dt = RunExecuteReader(strSQL);
@@ -2249,7 +2347,7 @@ namespace WebApiAzure
                 Dictionary<int, float> dict = new Dictionary<int, float>();
                 WeekInfo week = Weeks.GetWeek(date, false);
                 string strSQL = "SELECT AVG(Performance) AS AVG_PERF, ProjectID" +
-                    " FROM ProjectLog " +
+                    " FROM ProjectLogNG " +
                     " WHERE TheDate >= " + DTC.Date.ObtainGoodDT(week.StartDate, true) +
                     " AND TheDate <= " + DTC.Date.ObtainGoodDT(week.EndDate, true) +
                     " AND (Performance > 0)" +
@@ -2273,7 +2371,7 @@ namespace WebApiAzure
                 Dictionary<int, float> dict = new Dictionary<int, float>();
                 MonthInfo month = Months.GetMonth(date, false);
                 string strSQL = "SELECT AVG(Performance) AS AVG_PERF, ProjectID" +
-                    " FROM ProjectLog " +
+                    " FROM ProjectLogNG " +
                     " WHERE TheDate >= " + DTC.Date.ObtainGoodDT(month.StartDate, true) +
                     " AND TheDate <= " + DTC.Date.ObtainGoodDT(month.EndDate, true) +
                     " AND (Performance > 0)" +
@@ -2291,6 +2389,80 @@ namespace WebApiAzure
                 }
                 
                 return dict;
+            }
+            public static DateTime GetEstimatedCompletionDate(int projectID)
+            {
+                DateTime result = DateTime.MaxValue;
+                ProjectInfo project = GetProject(projectID);
+                float daysSpent = (float)DateTime.Today.Subtract(project.StartDate).TotalDays;
+
+                float percentComplete = 0;
+                List<ZoneInfo> zones = Zones.GetZones(projectID, true);
+                foreach(ZoneInfo zone in zones)
+                    percentComplete += zone.Contribution;
+
+                float totalDaysNeeded =  daysSpent / percentComplete;
+                result = project.StartDate.AddDays(totalDaysNeeded);
+
+                return result;
+            }
+            public static void UpdateCompletionRateAndHoursNeeded(int projectID)
+            {
+                ProjectInfo project = GetProject(projectID);
+                float daysSpent = (float)DateTime.Today.Subtract(project.StartDate).TotalDays;
+
+                float completionRate = 0;
+                float hoursNeededToComplete = 0;
+                List<ZoneInfo> zones = Zones.GetZones(projectID, true);
+                foreach (ZoneInfo zone in zones)
+                {
+                    completionRate += zone.Contribution;
+                    if(!zone.IsCompleted)
+                    {
+                        float difference = zone.HoursNeeded - zone.HoursSpent;
+                        if (difference > 0)
+                            hoursNeededToComplete += difference;
+                    }
+                }
+                    
+                DateTime estimatedCompletionDate = DateTime.MaxValue;
+                DateTime estimatedCompletionDateBasedOnLast30Days = DateTime.MaxValue;
+                float workPerDayNeededForDueDate = 0;
+
+                float daysLeftForDueDate = (float)project.DueDate.Subtract(DateTime.Today).TotalDays;
+                if(daysLeftForDueDate > 0)
+                {
+                    workPerDayNeededForDueDate = hoursNeededToComplete / daysLeftForDueDate;
+                }
+
+                float taskHoursTotal = GetTotalHours(project);
+                float taskHoursLast30Days = GetTotalHoursLast30Days(project);
+
+                if (completionRate > 0)
+                {
+                    float totalDaysNeeded = daysSpent / completionRate;
+                    float totalHoursNeededToCompleteTheProject = taskHoursTotal / completionRate;
+                    float hoursLeft = totalHoursNeededToCompleteTheProject - taskHoursTotal;
+
+                    //float totalDaysNeededBasedOnLast30Days = totalDaysNeeded * (taskHoursTotal / daysSpent) / (taskHoursLast30Days / 30);
+                    float totalDaysNeededBasedOnLast30Days = 10 * 365;  // if not worked within 30 days, declare it as 10 years
+                    if(taskHoursLast30Days > 0)
+                        totalDaysNeededBasedOnLast30Days = hoursLeft / (taskHoursLast30Days / 30);
+
+                    estimatedCompletionDate = project.StartDate.AddDays(totalDaysNeeded);
+                    estimatedCompletionDateBasedOnLast30Days = DateTime.Today.AddDays(totalDaysNeededBasedOnLast30Days);
+                }
+                
+                string strSQL = "UPDATE Projects SET" +
+                    " CompletionRate = " + completionRate + "," +
+                    " HoursNeededToComplete = " + hoursNeededToComplete + "," +
+                    " EstimatedCompletionDate = " + DTC.ObtainGoodDT(estimatedCompletionDate, true) + "," +
+                    " EstimatedCompletionDateBasedOnLast30Days = " + DTC.ObtainGoodDT(estimatedCompletionDateBasedOnLast30Days, true) + "," +
+                    " WorkPerDayNeededForDueDate = " + workPerDayNeededForDueDate +
+                    " WHERE ProjectID = " + projectID;
+                RunNonQuery(strSQL);
+
+                AddProjectLog(projectID, DateTime.Today, completionRate);
             }
         }
 
@@ -2448,7 +2620,6 @@ namespace WebApiAzure
                 if (dr["Details"] != DBNull.Value) info.Details = Convert.ToString(dr["Details"]);
                 info.Status = (DTC.StatusEnum)Convert.ToInt32(dr["StatusID"]);
                 info.Order = Convert.ToInt32(dr["TheOrder"]);
-                info.ChapterID = Convert.ToInt32(dr["ChapterID"]);
                 if (dr["ProjectCode"] != DBNull.Value) info.ProjectCode = Convert.ToString(dr["ProjectCode"]);
                 if (dr["GoalID"] != DBNull.Value) info.RunningGoalID = Convert.ToInt32(dr["GoalID"]);
 
@@ -2552,7 +2723,7 @@ namespace WebApiAzure
                     SQL = "SET NOCOUNT ON INSERT INTO Blocks " +
                          " (Title, Details, ProjectID, ZoneID, " +
                          " HasDue, StartDate, EndDate, DueDate, StatusID," +
-                         " TheOrder, ChapterID, ProjectCode)" +
+                         " TheOrder, ProjectCode)" +
                          " VALUES (" +
                          "'" + DTC.Control.InputText(block.Title, 255) + "'," +
                          "'" + DTC.Control.InputText(block.Details, 999) + "'," +
@@ -2564,7 +2735,6 @@ namespace WebApiAzure
                          DTC.Date.ObtainGoodDT(block.DueDate, true) + "," +
                          (int)block.Status + "," +
                          block.Order + "," +
-                         block.ChapterID + "," +
                          "'" + DTC.Control.InputText(block.ProjectCode, 50) + "'" +
                          ") SELECT SCOPE_IDENTITY() AS BlockID";
                     block.ID = RunExecuteScalar(SQL);
@@ -2582,7 +2752,6 @@ namespace WebApiAzure
                        " DueDate = " + DTC.Date.ObtainGoodDT(block.DueDate, true) + "," +
                        " StatusID = " + (int)block.Status + "," +
                        " TheOrder = " + block.Order + "," +
-                       " ChapterID = " + block.ChapterID + "," +
                        " ProjectCode = '" + DTC.Control.InputText(block.ProjectCode, 50) + "'" +
                        " WHERE BlockID = " + block.ID;
                     RunNonQuery(SQL);
@@ -2896,28 +3065,24 @@ namespace WebApiAzure
                 float totalSize = 0;
                 float completeness = 0;
 
-                Dictionary<long, TaskInfo> tasks = DB.Tasks.GetTasks("SELECT * FROM Tasks WHERE SegmentID = " + segment.ID);
+                List<TaskInfo> tasks = DB.Tasks.GetTasks("SELECT * FROM Tasks WHERE SegmentID = " + segment.ID);
                 float compTodos = 0;
                 float inCompTodos = 0;
 
                 totalSize = segment.GetSize();
 
                 // if the segment is not closed in time, let's calculate a performance
-                foreach (TaskInfo task in tasks.Values)
+                foreach (TaskInfo task in tasks)
                 {
                     if (task.IsCompleted)
                     {
                         if (!segment.HasDue)
-                        {
                             compTodos++;
-                        }
                         else
-                        {
                             if (task.EndDate <= cutOffDate)
                             {
                                 compTodos++;
                             }
-                        }
                     }
                     else
                     {
@@ -4497,19 +4662,12 @@ namespace WebApiAzure
                 #region Number of Books
                 else if (goal.GoalType == GoalTypeInfo.TypeEnum.NumberOfBooks)
                 {
-                    string bookCountSQL = "";
-                    if ((DTC.BookCountMethod)goal.Criteria == DTC.BookCountMethod.Weighted)
-                        bookCountSQL = "CONVERT(float, SUM(Books.Size)) / 2";
-                    else bookCountSQL = "COUNT(BookProcesses.BookProcessID)";
-
-                    SQL = "SELECT " + bookCountSQL + " AS TOTAL" +
-                        " FROM BookProcesses" +
-                        " INNER JOIN Books ON BookProcesses.BookID = Books.BookID" +
-                        " WHERE BookProcesses.EndDate >= " + DTC.Date.ObtainGoodDT(goal.StartDate, true) +
-                        " AND BookProcesses.EndDate <= " + DTC.Date.ObtainGoodDT(goal.DueDate, true) +
-                        " AND Books.Nature = " + goal.ItemNature +
-                        " AND BookProcesses.Status = " + (int)DTC.StatusEnum.Success;
-                    CollectProjectFields(goal, "BookProcesses");
+                    SQL = "SELECT COUNT(BookID) AS TOTAL FROM Books " +
+                        " WHERE EndDate >= " + DTC.Date.ObtainGoodDT(goal.StartDate, true) +
+                        " AND EndDate <= " + DTC.Date.ObtainGoodDT(goal.DueDate, true) +
+                        " AND Nature = " + goal.ItemNature +
+                        " AND Status = " + (int)DTC.StatusEnum.Success +
+                        CollectProjectFields(goal, "Books");
                 }
                 #endregion
                 #region Number of Todos
@@ -4680,7 +4838,7 @@ namespace WebApiAzure
                 else if (goal.GoalType == GoalTypeInfo.TypeEnum.Book)
                 {
                     SQL = "";
-                    result = Books.GetCurrentValue(Books.GetBookProcess(goal.ItemID), goal.EndDate);
+                    result = Books.GetCurrentValue(goal.ItemID);
                 }
                 #endregion
                 #region Project Goal
@@ -4742,26 +4900,7 @@ namespace WebApiAzure
                 }
                 else if (goal.GoalType == GoalTypeInfo.TypeEnum.Book)
                 {
-                    int bookProcessID = goal.ItemID;
-                    BookProcessInfo bookProcess = Books.GetBookProcess(bookProcessID);
-
-                    if (bookProcess.ProcessType == BookProcessInfo.BookProcessType.Standart)
-                    {
-                        BookInfo book = Books.GetBook(bookProcess.BookID);
-
-                        if (book.Nature == DTC.BookNature.Book)
-                            result = book.NumPages;
-                        else if (book.Nature == DTC.BookNature.Audiobook)
-                            result = book.TotalDuration;
-                        else if (book.Nature == DTC.BookNature.Article)
-                            result = 1;
-                        else result = 0;
-                    }
-                    else if (bookProcess.ProcessType == BookProcessInfo.BookProcessType.ChapterBased)
-                    {
-                        result = 100;
-                    }
-
+                    result = Books.GetCurrentValue(goal.ItemID);
                 }
                 else if (goal.GoalType == GoalTypeInfo.TypeEnum.Pragma)
                 {
@@ -4782,31 +4921,7 @@ namespace WebApiAzure
 
                 if (goal.GoalType == GoalTypeInfo.TypeEnum.Book)
                 {
-                    BookProcessInfo bookProcess = Books.GetBookProcess(goal.ItemID);
-                    if (bookProcess.ProcessType == BookProcessInfo.BookProcessType.ChapterBased)
-                    {
-                        int id = 0;
-                        BookProcessInfo.DestinationEnum destination = BookProcessInfo.DestinationEnum.NoDestination;
-
-                        Books.GetDeployParameters(bookProcess, out destination, out id);
-
-                        if (destination == BookProcessInfo.DestinationEnum.Project)
-                        {
-                            project = Projects.GetProject(id);
-
-                        }
-                        else if (destination == BookProcessInfo.DestinationEnum.Block)
-                        {
-                            BlockInfo block = DB.Blocks.GetBlock(id);
-                            project = Projects.GetProject(block.ProjectID);
-                        }
-                        else if (destination == BookProcessInfo.DestinationEnum.Segment)
-                        {
-                            SegmentInfo segment = DB.Segments.GetSegment(id);
-                            BlockInfo block = DB.Blocks.GetBlock(segment.BlockID);
-                            project = Projects.GetProject(block.ProjectID);
-                        }
-                    }
+                    // IMPLEMENTATION REMOVED
                 }
                 else if (goal.GoalType == GoalTypeInfo.TypeEnum.Todo)
                 {
@@ -4949,6 +5064,13 @@ namespace WebApiAzure
                 DB.Days.AddUpdateDay(day);
 
                 */
+            }
+            public static void UpdateGoalAsCompleted(long goalID)
+            {
+                string strSQL = "UPDATE Goals SET " +
+                    " StatusID = " + (int)DTC.StatusEnum.Success +
+                    " WHERE GoalID = " + goalID;
+                RunNonQuery(strSQL);
             }
         }
 
@@ -5184,119 +5306,7 @@ namespace WebApiAzure
 
         public class Books
         {
-            public static Dictionary<int, BookInfo> GetBooks(DTC.BookNature nature)
-            {
-                Dictionary<int, BookInfo> dict = new Dictionary<int, BookInfo>();
-
-                string filterSQL = "";
-                if (nature != DTC.BookNature.TypeFree) filterSQL = " WHERE Books.Nature = " + (int)nature;
-
-                string strSQL = "SELECT DISTINCT " +
-                    " Books.BookID, Books.Title, Books.Nature, Books.Author, Books.Size," +
-                    " Books.NumPages, Books.TotalDuration, Books.EntryDate, Books.Details," +
-                    " BookProcesses.BookID AS PROCESS" +
-                    " FROM Books" +
-                    " LEFT OUTER JOIN BookProcesses ON Books.BookID = BookProcesses.BookID" +
-                    filterSQL +
-                    " ORDER BY Books.EntryDate DESC";
-                DataTable dt = RunExecuteReader(strSQL);
-                foreach (DataRow dr in dt.Rows)
-                    dict.Add(Convert.ToInt32(dr["BookID"]), GetBook(dr));
-                
-                return dict;
-            }
-            public static Dictionary<int, BookProcessInfo> GetBookProcesses(DTC.BookNature nature, DTC.StatusEnum status)
-            {
-                Dictionary<int, BookProcessInfo> dict = new Dictionary<int, BookProcessInfo>();
-
-                string filterSQL = "";
-                filterSQL = " WHERE BookProcesses.Status = " + (int)status;
-                if (nature != DTC.BookNature.TypeFree) filterSQL += " AND Books.Nature = " + (int)nature;
-
-                string strSQL = "SELECT BookProcesses.*,Books.Nature" +
-                    " FROM BookProcesses" +
-                    " INNER JOIN Books ON BookProcesses.BookID = Books.BookID" +
-                    filterSQL +
-                    " ORDER BY BookProcesses.StartDate DESC";
-                DataTable dt = RunExecuteReader(strSQL);
-                foreach (DataRow dr in dt.Rows)
-                    dict.Add(Convert.ToInt32(dr["BookProcessID"]), GetBookProcess(dr));
-
-                return dict;
-            }
-            public static Dictionary<int, BookProcessInfo> GetBookProcesses(DTC.BookNature nature, DTC.StatusEnum status, DateTime startDate, DateTime endDate)
-            {
-                Dictionary<int, BookProcessInfo> dict = new Dictionary<int, BookProcessInfo>();
-
-                string filterSQL = "";
-                filterSQL = " WHERE BookProcesses.Status = " + (int)status;
-                if (nature != DTC.BookNature.TypeFree) filterSQL += " AND Books.Nature = " + (int)nature;
-
-                string strSQL = "SELECT BookProcesses.*,Books.Nature" +
-                    " FROM BookProcesses" +
-                    " INNER JOIN Books ON BookProcesses.BookID = Books.BookID" +
-                    filterSQL +
-                    " AND BookProcesses.EndDate >= " + DTC.Date.ObtainGoodDT(startDate, true) +
-                    " AND BookProcesses.EndDate <= " + DTC.Date.ObtainGoodDT(endDate, true) +
-                    " ORDER BY BookProcesses.StartDate DESC";
-                DataTable dt = RunExecuteReader(strSQL);
-                foreach (DataRow dr in dt.Rows)
-                    dict.Add(Convert.ToInt32(dr["BookProcessID"]), GetBookProcess(dr));
-                
-                return dict;
-            }
-            public static BookProcessInfo GetBookProcess(int bookProcessID)
-            {
-                BookProcessInfo bookProcess = new BookProcessInfo();
-                string strSQL = "SELECT * FROM BookProcesses " +
-                     " WHERE BookProcessID = " + bookProcessID;
-                DataTable dt = RunExecuteReader(strSQL);
-                foreach (DataRow dr in dt.Rows)
-                    bookProcess = GetBookProcess(dr);
-
-                return bookProcess;
-            }
-            public static void DeleteBookProcess(BookProcessInfo bookProcess)
-            {
-                string SQL;
-                BookInfo book = GetBook(bookProcess.BookID);
-
-                Dictionary<int, ChapterInfo> chapters = GetChapters(book);
-                foreach (ChapterInfo chapter in chapters.Values)
-                {
-                    SQL = "DELETE Todos WHERE ChapterID = " + chapter.ID;
-                    RunNonQuery(SQL);
-                    SQL = "DELETE Segments WHERE ChapterID = " + chapter.ID;
-                    RunNonQuery(SQL);
-                    SQL = "DELETE Blocks WHERE ChapterID = " + chapter.ID;
-                    RunNonQuery(SQL);
-                }
-
-                SQL = "DELETE FROM BookProcessDeploy " +
-                    " WHERE BookProcessID = " + bookProcess.ID;
-                RunNonQuery(SQL);
-
-                SQL = "DELETE FROM BookProcesses " +
-                     " WHERE BookProcessID = " + bookProcess.ID;
-                RunNonQuery(SQL);
-            }
-            public static BookProcessInfo GetBookProcess(DataRow dr)
-            {
-                BookProcessInfo info = new BookProcessInfo();
-
-                info.ID = Convert.ToInt32(dr["BookProcessID"]);
-                info.BookID = Convert.ToInt32(dr["BookID"]);
-                info.CurrentDuration = Convert.ToInt32(dr["CurrentDuration"]);
-                info.CurrentPage = Convert.ToInt32(dr["CurrentPage"]);
-                info.StartDate = Convert.ToDateTime(dr["StartDate"]);
-                if (dr["EndDate"] != DBNull.Value) info.EndDate = Convert.ToDateTime(dr["EndDate"]);
-                info.Status = (DTC.StatusEnum)(Convert.ToInt32(dr["Status"]));
-                info.ProcessType = (BookProcessInfo.BookProcessType)Convert.ToInt32(dr["ProcessType"]);
-                info.Details = Convert.ToString(dr["Details"]);
-
-                return info;
-            }
-            public static BookInfo GetBook(DataRow dr)
+            private static BookInfo GetBook(DataRow dr)
             {
                 BookInfo info = new BookInfo();
 
@@ -5304,13 +5314,14 @@ namespace WebApiAzure
                 info.Title = Convert.ToString(dr["Title"]);
                 info.Author = Convert.ToString(dr["Author"]);
                 info.Nature = (DTC.BookNature)(Convert.ToInt32(dr["Nature"]));
-                info.Size = (DTC.SizeEnum)(Convert.ToInt32(dr["Size"]));
-                info.TotalDuration = Convert.ToInt32(dr["TotalDuration"]);
-                info.NumPages = Convert.ToInt32(dr["NumPages"]);
-                info.EntryDate = Convert.ToDateTime(dr["EntryDate"]);
+                info.TotalValue = Convert.ToSingle(dr["TotalValue"]);
+                info.CurrentValue = Convert.ToSingle(dr["CurrentValue"]);
+                info.IsTrackProgress = Convert.ToBoolean(dr["IsTrackProgress"]);
+                info.StartDate = Convert.ToDateTime(dr["StartDate"]);
+                if (dr["EndDate"] != DBNull.Value) info.EndDate = Convert.ToDateTime(dr["EndDate"]);
+                info.Status = (DTC.StatusEnum)(Convert.ToInt32(dr["Status"]));
                 info.Details = Convert.ToString(dr["Details"]);
-                if (dr["PROCESS"] != DBNull.Value) info.IsProcessed = true;
-                else info.IsProcessed = false;
+                info.AudiobookProcessType = (BookInfo.AudiobookProcessTypeEnum) Convert.ToInt16(dr["AudiobookProcessType"]);
 
                 return info;
             }
@@ -5318,471 +5329,141 @@ namespace WebApiAzure
             {
                 BookInfo info = new BookInfo();
 
-                string strSQL = "SELECT DISTINCT " +
-                   " Books.BookID, Books.Title, Books.Nature, Books.Author, Books.Size," +
-                   " Books.NumPages, Books.TotalDuration, Books.EntryDate, Books.Details," +
-                   " BookProcesses.BookID AS PROCESS" +
-                   " FROM Books" +
-                   " LEFT OUTER JOIN BookProcesses ON Books.BookID = BookProcesses.BookID" +
-                   " WHERE Books.BookID = " + bookID +
-                   " ORDER BY Books.EntryDate DESC";
-                DataTable dt = RunExecuteReader(strSQL);
-                foreach (DataRow dr in dt.Rows)
-                    info = GetBook(dr);
-                
+                string SQL = "SELECT * FROM Books" +
+                   " WHERE BookID = " + bookID +
+                   " ORDER BY StartDate DESC";
+                DataTable dt = RunExecuteReader(SQL);
+                if (dt.Rows.Count == 1)
+                    info = GetBook(dt.Rows[0]);
+
                 return info;
             }
-            public static void AddUpdateBook(BookInfo book)
+            public static Dictionary<int, BookInfo> GetBooks(DTC.BookNature nature)
             {
-                AddOrUpdate addOrUpdate = AddOrUpdate.Add;
-                if (book.ID > 0) addOrUpdate = AddOrUpdate.Update;
+                Dictionary<int, BookInfo> dict = new Dictionary<int, BookInfo>();
 
-                string SQL = "";
+                string filterSQL = "";
+                if (nature != DTC.BookNature.TypeFree) filterSQL = " WHERE Nature = " + (int)nature;
 
-                if (addOrUpdate == AddOrUpdate.Add)
-                {
-                    SQL = "INSERT INTO Books " +
-                        " (Title,Author,Nature,Size,NumPages,TotalDuration,EntryDate,Details" +
-                        " ) VALUES (" +
-                        "'" + DTC.Control.InputText(book.Title, 99) + "'," +
-                        "'" + DTC.Control.InputText(book.Author, 99) + "'," +
-                        (int)book.Nature + "," +
-                        (int)book.Size + "," +
-                        book.NumPages + "," +
-                        book.TotalDuration + "," +
-                        DTC.Date.ObtainGoodDT(book.EntryDate, true) + "," +
-                        "'" + DTC.Control.InputText(book.Details, 255) + "'" +
-                        ")";
-                }
-                else
-                {
-                    SQL = "UPDATE Books SET " +
-                        " Title = '" + DTC.Control.InputText(book.Title, 99) + "'," +
-                        " Author = '" + DTC.Control.InputText(book.Author, 99) + "'," +
-                        " Nature = " + (int)book.Nature + "," +
-                        " Size = " + (int)book.Size + "," +
-                        " NumPages = " + book.NumPages + "," +
-                        " TotalDuration = " + book.TotalDuration + "," +
-                        " EntryDate = " + DTC.Date.ObtainGoodDT(book.EntryDate, true) + "," +
-                        " Details = '" + DTC.Control.InputText(book.Details, 255) + "'" +
-                        " WHERE BookID = " + book.ID;
-                }
-                RunNonQuery(SQL);
-            }
-            public static bool DeleteBook(int bookID)
-            {
-                bool isOK = true;
-
-                string strSQL = "SELECT * FROM BookProcesses WHERE BookID = " + bookID;
+                string strSQL = "SELECT * FROM Books" +
+                    filterSQL +
+                    " ORDER BY StartDate DESC";
                 DataTable dt = RunExecuteReader(strSQL);
+
                 foreach (DataRow dr in dt.Rows)
-                    isOK = false;
+                    dict.Add(Convert.ToInt32(dr["BookID"]), GetBook(dr));
 
-                if (isOK)
-                {
-                    strSQL = "DELETE Books WHERE BookID = " + bookID;
-                    RunNonQuery(strSQL);
-                }
-                
-                return isOK;
+                return dict;
             }
-            public static int AddUpdateBookProcess(BookProcessInfo bookProcess)
+            public static Dictionary<int, BookInfo> GetBooks(DTC.BookNature nature, DTC.StatusEnum status)
             {
-                string SQL = "";
+                Dictionary<int, BookInfo> dict = new Dictionary<int, BookInfo>();
 
-                if (bookProcess.ID == 0)
-                {
-                    SQL = "INSERT INTO BookProcesses " +
-                        " (BookID,ProcessType,StartDate,EndDate,Status,CurrentPage,CurrentDuration,Details" +
-                        " ) VALUES (" +
-                        bookProcess.BookID + "," +
-                        (int)bookProcess.ProcessType + "," +
-                        DTC.Date.ObtainGoodDT(bookProcess.StartDate, true) + "," +
-                        DTC.Date.ObtainGoodDT(bookProcess.EndDate, true) + "," +
-                        (int)bookProcess.Status + "," +
-                        bookProcess.CurrentPage + "," +
-                        bookProcess.CurrentDuration + "," +
-                        "'" + DTC.Control.InputText(bookProcess.Details, 255) + "'" +
-                        ")  SELECT SCOPE_IDENTITY() AS BookProcessID";
-                    bookProcess.ID = (int)RunExecuteScalar(SQL);
-                }
+                string filterSQL = "";
+                if(status != DTC.StatusEnum.NA)
+                    filterSQL = " WHERE Status = " + (int)status;
                 else
-                {
-                    SQL = "UPDATE BookProcesses SET " +
-                        " BookID = " + bookProcess.BookID + "," +
-                        " ProcessType = " + (int)bookProcess.ProcessType + "," +
-                        " StartDate = " + DTC.Date.ObtainGoodDT(bookProcess.StartDate, true) + "," +
-                        " EndDate = " + DTC.Date.ObtainGoodDT(bookProcess.EndDate, true) + "," +
-                        " Status = " + (int)bookProcess.Status + "," +
-                        " CurrentPage = " + bookProcess.CurrentPage + "," +
-                        " CurrentDuration = " + bookProcess.CurrentDuration + "," +
-                        " Details = '" + DTC.Control.InputText(bookProcess.Details, 255) + "'" +
-                        " WHERE BookProcessID = " + bookProcess.ID;
-                    RunNonQuery(SQL);
-                }
+                    filterSQL = " WHERE Status >= " + (int)status;  // take everything
 
-                return bookProcess.ID;
+                if (nature != DTC.BookNature.TypeFree) filterSQL += " AND Nature = " + (int)nature;
+
+                string strSQL = "SELECT * FROM Books" +
+                    filterSQL +
+                    " ORDER BY StartDate DESC";
+                DataTable dt = RunExecuteReader(strSQL);
+
+                foreach (DataRow dr in dt.Rows)
+                    dict.Add(Convert.ToInt32(dr["BookID"]), GetBook(dr));
+
+                return dict;
             }
-            public static float GetPercentage(BookProcessInfo bookProcess, DateTime cutOffDate)
+            public static Dictionary<int, BookInfo> GetBooks(DTC.BookNature nature, DTC.StatusEnum status, DateTime startDate, DateTime endDate)
+            {
+                Dictionary<int, BookInfo> dict = new Dictionary<int, BookInfo>();
+
+                string filterSQL = "";
+                filterSQL = " WHERE Status = " + (int)status;
+                if (nature != DTC.BookNature.TypeFree) filterSQL += " AND Nature = " + (int)nature;
+
+                string strSQL = "SELECT * FROM Books" +
+                    filterSQL +
+                    " AND EndDate >= " + DTC.Date.ObtainGoodDT(startDate, true) +
+                    " AND EndDate <= " + DTC.Date.ObtainGoodDT(endDate, true) +
+                    " ORDER BY StartDate DESC";
+                DataTable dt = RunExecuteReader(strSQL);
+
+                foreach (DataRow dr in dt.Rows)
+                    dict.Add(Convert.ToInt32(dr["BookID"]), GetBook(dr));
+
+                return dict;
+            }
+            public static float GetPercentage(int bookID)
             {
                 float result = 0;
-                BookInfo book = GetBook(bookProcess.BookID);
+                BookInfo book = GetBook(bookID);
 
-                if (bookProcess.ProcessType == BookProcessInfo.BookProcessType.Standart)
-                {
-                    if (book.Nature == DTC.BookNature.Book)
-                    {
-                        if (book.NumPages > 0) result = 100 * (float)bookProcess.CurrentPage / (float)book.NumPages;
-                        else result = 0;
-                    }
-                    else if (book.Nature == DTC.BookNature.Audiobook)
-                    {
-                        if (book.TotalDuration > 0) result = 100 * (float)bookProcess.CurrentDuration / (float)book.TotalDuration;
-                        else result = 0;
-                    }
-                }
-                else if (bookProcess.ProcessType == BookProcessInfo.BookProcessType.ChapterBased)
-                {
-                    return GetCurrentValue(bookProcess, cutOffDate);
-                }
-
-                return result;
-            }
-            public static float GetCurrentValue(BookProcessInfo bookProcess, DateTime cutOffDate)
-            {
-                float result = 0;
-                BookInfo book = GetBook(bookProcess.BookID);
-
-                if (bookProcess.ProcessType == BookProcessInfo.BookProcessType.Standart)
-                {
-                    if (book.Nature == DTC.BookNature.Book || book.Nature == DTC.BookNature.Article) result = bookProcess.CurrentPage;
-                    else if (book.Nature == DTC.BookNature.Audiobook) result = bookProcess.CurrentDuration;
-                }
-                else if (bookProcess.ProcessType == BookProcessInfo.BookProcessType.ChapterBased)
-                {
-                    BookProcessInfo.DestinationEnum destination;
-                    int id;
-                    GetDeployParameters(bookProcess, out destination, out id);
-
-                    if (destination == BookProcessInfo.DestinationEnum.Project)
-                    {
-                        ProjectInfo project = Projects.GetProject(id);
-                        result = Projects.GetPerformanceFigures(project, true).GetPerformance();
-                    }
-                    else if (destination == BookProcessInfo.DestinationEnum.Block)
-                    {
-                        BlockInfo block = Blocks.GetBlock(id);
-                        result = Blocks.GetPerformance(block, cutOffDate);
-                    }
-                    else if (destination == BookProcessInfo.DestinationEnum.Segment)
-                    {
-                        SegmentInfo segment = Segments.GetSegment(id);
-                        result = Segments.GetPerformance(segment, cutOffDate);
-                    }
-                }
-
+                if (book.TotalValue > 0) result = 100 * (float)book.CurrentValue / (float)book.TotalValue;
                 else result = 0;
 
                 return result;
             }
-            public static ChapterInfo GetChapter(DataRow dr)
+            public static float GetCurrentValue(int bookID)
             {
-                ChapterInfo info = new ChapterInfo();
+                float result = 0;
+                BookInfo book = GetBook(bookID);
 
-                info.ID = Convert.ToInt32(dr["ChapterID"]);
-                info.MasterID = Convert.ToInt32(dr["MasterChapterID"]);
-                info.Order = Convert.ToInt16(dr["ChapterOrder"]);
-                info.BookID = Convert.ToInt32(dr["BookID"]);
-                info.Title = Convert.ToString(dr["Title"]);
-                info.Details = Convert.ToString(dr["Details"]);
-                info.Level = (ChapterInfo.LevelEnum)Convert.ToInt16(dr["Level"]);
-                info.EstMin = Convert.ToInt16(dr["EstMin"]);
+                result = book.CurrentValue;
 
-                return info;
+                return result;
             }
-            public static ChapterInfo GetChapter(int chapterID)
-            {
-                ChapterInfo info = new ChapterInfo();
-
-                string strSQL = "SELECT * FROM Chapters WHERE ChapterID=" + chapterID;
-                DataTable dt = RunExecuteReader(strSQL);
-                foreach (DataRow dr in dt.Rows)
-                    info = GetChapter(dr);
-
-                
-                return info;
-            }
-            public static Dictionary<int, ChapterInfo> GetChapters(string strSQL)
-            {
-                Dictionary<int, ChapterInfo> dict = new Dictionary<int, ChapterInfo>();
-                DataTable dt = RunExecuteReader(strSQL);
-                foreach (DataRow dr in dt.Rows)
-                    dict.Add(Convert.ToInt32(dr["ChapterID"]), GetChapter(dr));
-                
-                return dict;
-            }
-            public static Dictionary<int, ChapterInfo> GetChapters(BookInfo book)
-            {
-                string SQL = "SELECT * FROM Chapters " +
-                    " WHERE BookID = " + book.ID +
-                    " ORDER BY Level, ChapterOrder";
-                return GetChapters(SQL);
-            }
-            public static int AddUpdateChapter(ChapterInfo chapter)
+            public static int AddUpdateBook(BookInfo book)
             {
                 string SQL = "";
 
-                if (chapter.ID == 0)
+                if (book.ID == 0)
                 {
-                    SQL = "INSERT INTO Chapters " +
-                        " (MasterChapterID,ChapterOrder,BookID,Title," +
-                        " Details,EstMin,Level" +
-                        " ) VALUES (" +
-                        chapter.MasterID + "," +
-                        chapter.Order + "," +
-                        chapter.BookID + "," +
-                        "'" + DTC.Control.InputText(chapter.Title, 99) + "'," +
-                        "'" + DTC.Control.InputTextLight(chapter.Details, 999) + "'," +
-                        chapter.EstMin + "," +
-                        (int)chapter.Level +
-                        ") SELECT SCOPE_IDENTITY() AS ChapterID";
-                    chapter.ID = (int)RunExecuteScalar(SQL);
+                    SQL = "SET NOCOUNT ON INSERT INTO Books " +
+                         " (Title, Author, Nature, TotalValue, CurrentValue, IsTrackProgress,  " +
+                         " StartDate, EndDate, Status, Details, AudiobookProcessType )" +
+                         " VALUES (" +
+                         "'" + DTC.Control.InputText(book.Title) + "'," +
+                         "'" + DTC.Control.InputText(book.Author) + "'," +
+                         (int)book.Nature + "," +
+                         book.TotalValue + "," +
+                         book.CurrentValue + "," +
+                         Convert.ToInt16(book.IsTrackProgress) + "," +
+                         DTC.Date.ObtainGoodDT(book.StartDate, true) + "," +
+                         DTC.Date.ObtainGoodDT(book.EndDate, true) + "," +
+                         (int)book.Status + "," +
+                         "'" + DTC.Control.InputText(book.Details) + "'," +
+                         (int)book.AudiobookProcessType + 
+                         ") SELECT SCOPE_IDENTITY() AS BookID";
+                    book.ID = (int)RunExecuteScalar(SQL);
                 }
                 else
                 {
-                    SQL = "UPDATE Chapters SET " +
-                        " MasterChapterID = " + chapter.MasterID + "," +
-                        " ChapterOrder = " + chapter.Order + "," +
-                        " BookID = " + chapter.BookID + "," +
-                        " Title = '" + DTC.Control.InputText(chapter.Title, 99) + "'," +
-                        " Details = '" + DTC.Control.InputTextLight(chapter.Details, 999) + "'," +
-                        " EstMin = " + chapter.EstMin + "," +
-                        " Level = " + (int)chapter.Level +
-                        " WHERE ChapterID = " + chapter.ID;
+                    SQL = "UPDATE Books SET " +
+                       " Title = '" + DTC.Control.InputText(book.Title) + "'," +
+                       " Author = '" + DTC.Control.InputText(book.Author) + "'," +
+                       " Nature = " + (int)book.Nature + "," +
+                       " TotalValue = " + book.TotalValue+ "," +
+                       " CurrentValue = " + book.CurrentValue + "," +
+                       " IsTrackProgress = " + Convert.ToInt16(book.IsTrackProgress) + "," +
+                       " StartDate = " + DTC.Date.ObtainGoodDT(book.StartDate, true) + "," +
+                       " EndDate = " + DTC.Date.ObtainGoodDT(book.EndDate, true) + "," +
+                       " Status = " + (int)book.Status + "," +
+                       " Details = '" + DTC.Control.InputText(book.Details) + "'," +
+                       " AudiobookProcessType = " + (int)book.AudiobookProcessType +
+                       " WHERE BookID = " + book.ID;
                     RunNonQuery(SQL);
                 }
 
-                return chapter.ID;
+                return book.ID;
             }
-            public static bool DeleteChapter(ChapterInfo chapter)
+            public static void DeleteBook(int bookID)
             {
-                bool isOK = true;
-                string SQL = "";
-
-                if (isOK)
-                {
-                    SQL = "DELETE Chapters WHERE ChapterID = " + chapter.ID;
-                    RunNonQuery(SQL);
-                }
-
-                return isOK;
-            }
-            public static void ReAssesChapters(BookInfo book)
-            {
-                Dictionary<int, ChapterInfo> chapters = GetChapters(book);
-
-                foreach (ChapterInfo chapter in chapters.Values)
-                {
-                    if (HasChild(chapter) && chapter.EstMin > 0)
-                    {
-                        chapter.EstMin = 0;
-                        AddUpdateChapter(chapter);
-                    }
-                }
-            }
-            private static bool HasChild(ChapterInfo chapter)
-            {
-                string strSQL = "SELECT * FROM Chapters " +
-                    " WHERE MasterChapterID = " + chapter.ID;
-                DataTable dt = RunExecuteReader(strSQL);
-                
-                return dt.Rows.Count > 0;
-            }
-            public static bool IsDeployed(BookProcessInfo bookProcess)
-            {
-                string strSQL = "SELECT * FROM BookProcessDeploy" +
-                    " WHERE BookProcessID = " + bookProcess.ID;
-
-                DataTable dt = RunExecuteReader(strSQL);
-                return dt.Rows.Count > 0;
-            }
-            public static bool DeployChapters(BookProcessInfo bookProcess, BookProcessInfo.DestinationEnum destination, int id)
-            {
-                bool isOK = !IsDeployed(bookProcess);
-
-                if (isOK)
-                {
-                    string SQL = "INSERT INTO BookProcessDeploy " +
-                        "(BookProcessID,Destination,ID) VALUES (" +
-                        bookProcess.ID + "," +
-                        (int)destination + "," +
-                        id +
-                        ")";
-                    RunNonQuery(SQL);
-
-                    BookInfo book = GetBook(bookProcess.BookID);
-                    ChapterInfo.LevelEnum maxLevel = GetMaxChapterLevel(book);
-                    Dictionary<int, ChapterInfo> chapters = GetChapters(book);
-
-                    // PROJECT
-                    if (destination == BookProcessInfo.DestinationEnum.Project)
-                    {
-                        List<ChapterInfo> listChapBlock = new List<ChapterInfo>(chapters.Values);
-                        listChapBlock = listChapBlock.FindAll(delegate (ChapterInfo info) { return (info.Level == ChapterInfo.LevelEnum.First); });
-
-                        ProjectInfo project = DB.Projects.GetProject(id);
-
-                        foreach (ChapterInfo chapBlock in listChapBlock)
-                        {
-                            long blockID = DB.Blocks.AddUpdateBlock(Chapter2Block(chapBlock, project));
-                            BlockInfo block = DB.Blocks.GetBlock(blockID);
-
-                            List<ChapterInfo> listChapSegm = new List<ChapterInfo>(chapters.Values);
-                            listChapSegm = listChapSegm.FindAll(delegate (ChapterInfo info) { return (info.Level == ChapterInfo.LevelEnum.Second && info.MasterID == chapBlock.ID); });
-
-                            foreach (ChapterInfo chapSeg in listChapSegm)
-                            {
-                                long segmentID = DB.Segments.AddUpdateSegment(Chapter2Segment(chapSeg, block));
-                                SegmentInfo segment = DB.Segments.GetSegment(segmentID);
-
-                                List<ChapterInfo> listChapTodo = new List<ChapterInfo>(chapters.Values);
-                                listChapTodo = listChapTodo.FindAll(delegate (ChapterInfo info) { return (info.Level == ChapterInfo.LevelEnum.Third && info.MasterID == chapSeg.ID); });
-
-                                foreach (ChapterInfo chapTodo in listChapTodo)
-                                {
-                                    DB.Tasks.AddUpdateTask(Chapter2Task(chapTodo, segment));
-                                }
-                            }
-
-                        }
-                    }
-
-
-                    // BLOCK
-                    if (destination == BookProcessInfo.DestinationEnum.Block)
-                    {
-                        int blockID = id;
-                        BlockInfo block = DB.Blocks.GetBlock(blockID);
-
-                        List<ChapterInfo> listChapSegm = new List<ChapterInfo>(chapters.Values);
-                        listChapSegm = listChapSegm.FindAll(delegate (ChapterInfo info) { return (info.Level == ChapterInfo.LevelEnum.First); });
-
-                        foreach (ChapterInfo chapSeg in listChapSegm)
-                        {
-                            long segmentID = DB.Segments.AddUpdateSegment(Chapter2Segment(chapSeg, block));
-                            SegmentInfo segment = DB.Segments.GetSegment(segmentID);
-
-                            List<ChapterInfo> listChapTodo = new List<ChapterInfo>(chapters.Values);
-                            listChapTodo = listChapTodo.FindAll(delegate (ChapterInfo info) { return (info.Level == ChapterInfo.LevelEnum.Second && info.MasterID == chapSeg.ID); });
-
-                            foreach (ChapterInfo chapTodo in listChapTodo)
-                            {
-                                DB.Tasks.AddUpdateTask(Chapter2Task(chapTodo, segment));
-                            }
-                        }
-                    }
-
-                    // SEGMENT
-                    if (destination == BookProcessInfo.DestinationEnum.Segment)
-                    {
-                        int segmentID = id;
-                        SegmentInfo segment = DB.Segments.GetSegment(segmentID);
-
-                        List<ChapterInfo> listChapTodo = new List<ChapterInfo>(chapters.Values);
-                        listChapTodo = listChapTodo.FindAll(delegate (ChapterInfo info) { return (info.Level == ChapterInfo.LevelEnum.First); });
-
-                        foreach (ChapterInfo chapTodo in listChapTodo)
-                        {
-                            DB.Tasks.AddUpdateTask(Chapter2Task(chapTodo, segment));
-                        }
-                    }
-
-                }
-
-                return isOK;
-            }
-            public static ChapterInfo.LevelEnum GetMaxChapterLevel(BookInfo book)
-            {
-                ChapterInfo.LevelEnum level = ChapterInfo.LevelEnum.Zero;
-
-                string strSQL = "SELECT MAX(Level) AS MAXLEVEL FROM Chapters " +
-                    " WHERE BookID = " + book.ID;
-                DataTable dt = RunExecuteReader(strSQL);
-                foreach (DataRow dr in dt.Rows)
-                    if (dr[0] != DBNull.Value)
-                    {
-                        if (DTC.IsNumeric(dr[0]))
-                        {
-                            level = (ChapterInfo.LevelEnum)Convert.ToInt16(dr[0]);
-                        }
-                    }
-                
-                return level;
-            }
-            public static BookProcessInfo.DestinationEnum GetPossibleDestination(BookInfo book)
-            {
-                ChapterInfo.LevelEnum level = GetMaxChapterLevel(book);
-                BookProcessInfo.DestinationEnum destination = BookProcessInfo.DestinationEnum.NoDestination;
-
-                if (level == ChapterInfo.LevelEnum.First)
-                    destination = BookProcessInfo.DestinationEnum.Segment;
-                else if (level == ChapterInfo.LevelEnum.Second)
-                    destination = BookProcessInfo.DestinationEnum.Block;
-                else if (level == ChapterInfo.LevelEnum.Third)
-                    destination = BookProcessInfo.DestinationEnum.Project;
-
-                return destination;
-            }
-            private static TaskInfo Chapter2Task(ChapterInfo chapter, SegmentInfo segment)
-            {
-                TaskInfo task = new TaskInfo();
-
-                task.Title = chapter.Title;
-                task.ChapterID = chapter.ID;
-                task.SegmentID = segment.ID;
-                task.PlannedTime = chapter.EstMin;
-                task.OrderGeneral = chapter.Order;
-
-                return task;
-            }
-            private static SegmentInfo Chapter2Segment(ChapterInfo chapter, BlockInfo block)
-            {
-                SegmentInfo segment = new SegmentInfo();
-
-                segment.Title = chapter.Title;
-                segment.ChapterID = chapter.ID;
-                segment.Order = chapter.Order;
-                segment.BlockID = block.ID;
-                segment.Size = DTC.SizeEnum.Medium;
-
-                return segment;
-            }
-            private static BlockInfo Chapter2Block(ChapterInfo chapter, ProjectInfo project)
-            {
-                BlockInfo block = new BlockInfo();
-
-                block.Title = chapter.Title;
-                block.ChapterID = chapter.ID;
-                block.Order = chapter.Order;
-                block.ProjectID = project.ID;
-
-                return block;
-            }
-            public static void GetDeployParameters(BookProcessInfo bookProcess, out BookProcessInfo.DestinationEnum destination, out int id)
-            {
-                destination = BookProcessInfo.DestinationEnum.NoDestination;
-                id = 0;
-
-                string strSQL = "SELECT * FROM BookProcessDeploy" +
-                    " WHERE BookProcessID = " + bookProcess.ID;
-                DataTable dt = RunExecuteReader(strSQL);
-                foreach (DataRow dr in dt.Rows)
-                {
-                    if (DTC.IsNumeric(dr["Destination"]))
-                        destination = (BookProcessInfo.DestinationEnum)Convert.ToInt16(dr["Destination"]);
-                    if (DTC.IsNumeric(dr["ID"]))
-                        id = Convert.ToInt32(dr["ID"]);
-                }
+                string strSQL = "DELETE Books WHERE BookID = " + bookID;
+                RunNonQuery(strSQL);
             }
         }
 
@@ -6018,6 +5699,8 @@ namespace WebApiAzure
                 if (dr["LastUpdateDate"] != DBNull.Value) info.LastUpdateDate = Convert.ToDateTime(dr["LastUpdateDate"]);
                 info.ProjectID = Convert.ToInt32(dr["ProjectID"]);
                 info.ProjectGroupID = Convert.ToInt32(dr["ProjectGroupID"]);
+                info.ProjectLabelShort= Convert.ToString(dr["ProjectLabelShort"]);
+                info.ProjectLabelLong = Convert.ToString(dr["ProjectLabelLong"]);
                 info.Details = Convert.ToString(dr["Details"]);
                 info.IsFocused = Convert.ToBoolean(dr["IsFocused"]);
                 if (getTotalIdeas)
@@ -6039,6 +5722,76 @@ namespace WebApiAzure
 
                 return info;
             }
+            public static List<IdeaGroupInfo> GetIdeaGroups()
+            {
+                List<IdeaGroupInfo> data = new List<IdeaGroupInfo>();
+
+                string strSQL = "SELECT IdeaGroups.IdeaGroupID, IdeaGroups.IdeaGroupTitle, IdeaGroups.CreationDate, IdeaGroups.LastUpdateDate, " +
+                    " IdeaGroups.ProjectGroupID, IdeaGroups.ProjectID, ProjectLabelShort, ProjectLabelLong, IdeaGroups.Details, IdeaGroups.IsFocused, COUNT(Ideas.IdeaID) AS TOTAL " +
+                    " FROM IdeaGroups " +
+                    " INNER JOIN Ideas ON IdeaGroups.IdeaGroupID = Ideas.IdeaGroupID " +
+                    " GROUP BY IdeaGroups.IsFocused, IdeaGroups.LastUpdateDate, IdeaGroups.IdeaGroupID, IdeaGroups.IdeaGroupTitle, " +
+                    " IdeaGroups.ProjectLabelShort, IdeaGroups.ProjectLabelLong, " +
+                    " IdeaGroups.CreationDate, IdeaGroups.ProjectGroupID, IdeaGroups.ProjectID, IdeaGroups.Details " +
+                    " ORDER BY IdeaGroups.IsFocused DESC, IdeaGroups.LastUpdateDate DESC";
+
+                DataTable dt = RunExecuteReader(strSQL);
+                foreach (DataRow dr in dt.Rows)
+                    data.Add(GetIdeaGroup(dr, true));
+
+                return data;
+            }
+            public static List<IdeaGroupInfo> GetIdeaGroups(bool isFocusedOnesOnTop, int numIdeaGroups)
+            {
+                List<IdeaGroupInfo> data = new List<IdeaGroupInfo>();
+
+                string strOrderBY = string.Empty;
+                if (isFocusedOnesOnTop)
+                    strOrderBY = "IdeaGroups.IsFocused DESC,";
+
+                string strSQL = "SELECT TOP " + numIdeaGroups + " IdeaGroups.IdeaGroupID, IdeaGroups.IdeaGroupTitle, IdeaGroups.CreationDate, IdeaGroups.LastUpdateDate, " +
+                    " IdeaGroups.ProjectGroupID, IdeaGroups.ProjectID, ProjectLabelShort, ProjectLabelLong, IdeaGroups.Details, IdeaGroups.IsFocused, COUNT(Ideas.IdeaID) AS TOTAL " +
+                    " FROM IdeaGroups " +
+                    " LEFT OUTER JOIN Ideas ON IdeaGroups.IdeaGroupID = Ideas.IdeaGroupID " +
+                    " GROUP BY IdeaGroups.IsFocused, IdeaGroups.LastUpdateDate, IdeaGroups.IdeaGroupID, ProjectLabelShort, ProjectLabelLong, IdeaGroups.IdeaGroupTitle, " +
+                    " IdeaGroups.CreationDate, IdeaGroups.ProjectGroupID, IdeaGroups.ProjectID, IdeaGroups.Details " +
+                    " ORDER BY " + strOrderBY + " IdeaGroups.LastUpdateDate DESC";
+
+                DataTable dt = RunExecuteReader(strSQL);
+                foreach (DataRow dr in dt.Rows)
+                    data.Add(GetIdeaGroup(dr, true));
+
+                return data;
+            }
+            public static void TempAssignProjectLabels()
+            {
+                List<IdeaGroupInfo> ideaGroupsAll = GetIdeaGroups();
+
+                string strSQL = "SELECT IdeaGroups.IdeaGroupID, IdeaGroups.IdeaGroupTitle, IdeaGroups.CreationDate, IdeaGroups.LastUpdateDate, IdeaGroups.ProjectGroupID, " +
+                    " IdeaGroups.ProjectID, IdeaGroups.Details, IdeaGroups.IsFocused, COUNT(Ideas.IdeaID) AS TOTAL, Projects.ProjectName, Projects.ProjectCode, " +
+                    " ProjectGroups.ProjectGroupCode, ProjectGroups.ProjectGroupName " +
+                    " FROM IdeaGroups " +
+                    " INNER JOIN Ideas ON IdeaGroups.IdeaGroupID = Ideas.IdeaGroupID " +
+                    " LEFT OUTER JOIN Projects ON IdeaGroups.ProjectID = Projects.ProjectID " +
+                    " LEFT OUTER JOIN ProjectGroups ON IdeaGroups.ProjectGroupID = ProjectGroups.ProjectGroupID " +
+                    " GROUP BY IdeaGroups.IsFocused, IdeaGroups.LastUpdateDate, IdeaGroups.IdeaGroupID, IdeaGroups.IdeaGroupTitle, IdeaGroups.CreationDate, " +
+                    " IdeaGroups.ProjectGroupID, IdeaGroups.ProjectID, IdeaGroups.Details, Projects.ProjectName, Projects.ProjectCode, ProjectGroups.ProjectGroupCode, " +
+                    " ProjectGroups.ProjectGroupName ORDER BY IdeaGroups.IsFocused DESC, IdeaGroups.LastUpdateDate DESC";
+
+                DataTable dt = RunExecuteReader(strSQL);
+                foreach (DataRow dr in dt.Rows)
+                {
+                    long ideaGroupID = Convert.ToInt32(dr["IdeaGroupID"]);
+                    IdeaGroupInfo iG = ideaGroupsAll.Find(i=>i.ID == ideaGroupID);
+
+                    if(iG != null)
+                    {
+                        iG.ProjectLabelShort = "";
+                    }
+                }
+                
+            }
+
             public static Dictionary<int, IdeaGroupInfo> GetIdeaGroups(int projectGroupID, int projectID, DateTime startDate, DateTime endDate)
             {
                 Dictionary<int, IdeaGroupInfo> dict = new Dictionary<int, IdeaGroupInfo>();
@@ -6061,6 +5814,7 @@ namespace WebApiAzure
                     filterSQL +
                     " GROUP BY IdeaGroups.IdeaGroupID, IdeaGroups.IdeaGroupTitle, IdeaGroups.CreationDate," +
                     " IdeaGroups.LastUpdateDate, IdeaGroups.ProjectGroupID, IdeaGroups.ProjectID," +
+                    " IdeaGroups.ProjectLabelShort, IdeaGroups.ProjectLabelLong, " +
                     " IdeaGroups.XIconID, IdeaGroups.Details, " +
                     " IdeaGroups.LocationX, IdeaGroups.LocationY, IdeaGroups.IsFocused," +
                     " IdeaGroups.MinLocationX, IdeaGroups.MinLocationY, IdeaGroups.IsMinimized," +
@@ -6090,6 +5844,7 @@ namespace WebApiAzure
                     " WHERE IdeaGroups.IsFocused = 1 " +
                     " GROUP BY IdeaGroups.IdeaGroupID, IdeaGroups.IdeaGroupTitle, IdeaGroups.CreationDate," +
                     " IdeaGroups.LastUpdateDate, IdeaGroups.ProjectGroupID, IdeaGroups.ProjectID," +
+                    " IdeaGroups.ProjectLabelShort, IdeaGroups.ProjectLabelLong, " +
                     " IdeaGroups.XIconID, IdeaGroups.Details, " +
                     " IdeaGroups.LocationX, IdeaGroups.LocationY, IdeaGroups.IsFocused, " +
                     " IdeaGroups.MinLocationX, IdeaGroups.MinLocationY, IdeaGroups.IsMinimized, " +
@@ -6120,23 +5875,28 @@ namespace WebApiAzure
                         " CreationDate = " + DTC.Date.ObtainGoodDT(ideaGroup.CreationDate, true) + "," +
                         " LastUpdateDate = " + DTC.Date.ObtainGoodDT(ideaGroup.LastUpdateDate, true) + "," +
                         " ProjectGroupID = " + ideaGroup.ProjectGroupID + "," +
+                        " ProjectLabelShort = '" + DTC.Control.InputText(ideaGroup.ProjectLabelShort, 50) + "'," +
+                        " ProjectLabelLong = '" + DTC.Control.InputText(ideaGroup.ProjectLabelLong, 50) + "'," +
                         " ProjectID = " + ideaGroup.ProjectID + "," +
                         " Details = '" + DTC.Control.InputText(ideaGroup.Details, 255) + "'," +
-                        " IsFocused = " + Convert.ToInt16(ideaGroup.IsFocused) + "," +
+                        " IsFocused = " + Convert.ToInt16(ideaGroup.IsFocused) + 
                         " WHERE IdeaGroupID = " + ideaGroup.ID;
                 }
                 else
                 {
                     strSQL = "INSERT INTO IdeaGroups " +
                         " (IdeaGroupTitle, CreationDate, LastUpdateDate, ProjectGroupID, ProjectID, " +
-                        " Details, XIconID, LocationX, LocationY, IsFocused, " +
-                        " IsMinimized, MinLocationX, MinLocationY, ZOrder, DesktopID)" +
+                        " ProjectLabelShort, ProjectLabelLong, " +
+                        " Details, IsFocused " +
+                        " )" +
                         " VALUES (" +
                         "'" + DTC.Control.InputText(ideaGroup.Title, 99) + "'," +
                         DTC.Date.ObtainGoodDT(ideaGroup.CreationDate, true) + "," +
                         DTC.Date.ObtainGoodDT(ideaGroup.LastUpdateDate, true) + "," +
                         ideaGroup.ProjectGroupID + "," +
                         ideaGroup.ProjectID + "," +
+                        "'" + DTC.Control.InputText(ideaGroup.ProjectLabelShort, 50) + "'," +
+                        "'" + DTC.Control.InputText(ideaGroup.ProjectLabelLong, 50) + "'," +
                         "'" + DTC.Control.InputText(ideaGroup.Details, 255) + "'," +
                         Convert.ToInt16(ideaGroup.IsFocused) + 
                         ")";
@@ -6144,7 +5904,7 @@ namespace WebApiAzure
 
                 RunNonQuery(strSQL);
             }
-            public static void DeleteIdeaGroup(int ideaGroupID)
+            public static void DeleteIdeaGroup(long ideaGroupID)
             {
                 string strSQL = "DELETE FROM Ideas " +
                     " WHERE IdeaGroupID = " + ideaGroupID;
@@ -6301,6 +6061,5 @@ namespace WebApiAzure
                 RunNonQuery(strSQL);
             }
         }
-
     }
 }

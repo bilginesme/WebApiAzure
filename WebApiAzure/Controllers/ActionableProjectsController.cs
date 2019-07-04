@@ -10,34 +10,63 @@ namespace WebApiAzure.Controllers
 {
     public class ActionableProjectsController : ApiController
     {
-        // GET: api/ActionableProjects
+        [HttpGet]
+        [Route("api/ActionableProjects/")]
         public IEnumerable<ProjectSnapshotInfo> Get()
         {
+            //DateTime dt = new DateTime(2019, 6, 15);
+            //int k = (int) dt.Subtract(DateTime.Now).TotalDays;
+
             List<ProjectSnapshotInfo> projectsSnapshot = DB.Projects.GetProjectsSnapshot();
 
             projectsSnapshot = projectsSnapshot.OrderByDescending(i=>i.RealTime).OrderBy(i => i.Rank).ToList();
             return projectsSnapshot;
         }
 
-        // GET: api/ActionableProjects/5
-        public ProjectSnapshotInfo Get(int id)
+        [HttpGet]
+        [Route("api/ActionableProjects/{isUpdateCompletionRate}/{rankID}")]
+        public IEnumerable<ProjectSnapshotInfo> Get(bool isUpdateCompletionRate, int rankID)
         {
-            ProjectSnapshotInfo ps = DB.Projects.GetProjectSnapshot(id);
+            List<ProjectSnapshotInfo> projectsSnapshot = DB.Projects.GetProjectsSnapshot();
+
+            if(isUpdateCompletionRate)
+            {
+                foreach (ProjectSnapshotInfo ps in projectsSnapshot)
+                    DB.Projects.UpdateCompletionRateAndHoursNeeded(ps.ProjectID);
+                projectsSnapshot = DB.Projects.GetProjectsSnapshot();
+
+            }
+
+            if (rankID > 0)
+                projectsSnapshot = projectsSnapshot.FindAll(i => i.Rank == (DTC.RankEnum)rankID);
+
+            projectsSnapshot = projectsSnapshot.OrderByDescending(i => i.RealTime).OrderBy(i => i.Rank).ToList();
+            return projectsSnapshot;
+        }
+
+        [HttpGet]
+        [Route("api/ActionableProjects/{projectID}")]
+        public ProjectSnapshotInfo Get(int projectID)
+        {
+            ProjectSnapshotInfo ps = DB.Projects.GetProjectSnapshot(projectID);
             return ps;
         }
 
-        // POST: api/ActionableProjects
+        [HttpPost]
+        [Route("api/ActionableProjects/")]
         public void Post([FromBody]string value)
         {
         }
 
-        // PUT: api/ActionableProjects/5
-        public void Put(int id, [FromBody]string value)
+        [HttpPut]
+        [Route("api/ActionableProjects/{projectID}")]
+        public void Put(int projectID, [FromBody]string value)
         {
         }
 
-        // DELETE: api/ActionableProjects/5
-        public void Delete(int id)
+        [HttpDelete]
+        [Route("api/ActionableProjects/{projectID}")]
+        public void Delete(int projectID)
         {
         }
     }

@@ -11,8 +11,8 @@ namespace WebApiAzure.Controllers
     public class GoalsSuggestionsController : ApiController
     {
         [HttpGet]
-        [Route("api/GoalsSuggestions/{rangeID}/{isIncludeBetweenLimitGoals}")]
-        public IEnumerable<GoalInfo> Get(int rangeID, bool isIncludeBetweenLimitGoals)
+        [Route("api/GoalsSuggestions/{rangeID}/{numItems}/{isIncludeBetweenLimitGoals}")]
+        public IEnumerable<GoalInfo> Get(int rangeID, int numItems, bool isIncludeBetweenLimitGoals)
         {
             DTC.RangeEnum range = (DTC.RangeEnum)rangeID;
             OwnerInfo owner = DB.Owner.GetOwner(range, DateTime.Today);
@@ -32,6 +32,7 @@ namespace WebApiAzure.Controllers
                 goal.ContributionMax = goalEngine.GetGoalContributionWeighted(goal, true, GoalsEngine.PerformanceNatureEnum.Worst);
             }
 
+            int nCount = 0;
             foreach (GoalInfo gOut in goalsAll)
             {
                 float maxValue = 0;
@@ -50,6 +51,10 @@ namespace WebApiAzure.Controllers
 
                 if (maxID > 0 && !goalsPicked.Exists(i => i.ID == maxID))
                     goalsPicked.Add(goalsAll.Find(i => i.ID == maxID));
+
+                nCount++;
+                if (nCount >= numItems)
+                    break;
             }
 
             return goalsPicked;

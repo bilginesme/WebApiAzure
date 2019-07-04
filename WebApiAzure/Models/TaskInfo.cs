@@ -7,76 +7,63 @@ namespace WebApiAzure.Models
 {
     public class TaskInfo : ICloneable
     {
-        #region Enums
         public enum SeperatorEnum : int { None = 0, Before = 1, After = 2 }
-        #endregion
 
-        #region Private Members
-        long id;
-        string title;
-        int projectID;
-        int projectGroupID;
-        long blockID;
-        long segmentID;
-        bool isCompleted;
-        string details;
-        int plannedTime;
-        int realTime;
-        DateTime startDate;
-        DateTime endDate;
-        DateTime taskDate;
-        int orderActive;
-        int orderGeneral;
-        bool isFloating;
-        bool isThing;
-        bool isActive;
-        bool canBeep;
-        int chapterID;
-        bool hasDue;
-        DateTime dueDate;
-        string seperatorHour;
-        SeperatorEnum seperator;
-        bool isPrivilaged;
-        int templateID;
-
-        Dictionary<long, CoTaskInfo> coTasks;
+        #region Members
+        public long ID { get; set; }
+        public string Title { get; set; }
+        public int ProjectID { get; set; }
+        public int ProjectGroupID { get; set; }
+        public long BlockID { get; set; }
+        public long SegmentID { get; set; }
+        public bool IsCompleted { get; set; }
+        public bool IsPrivilaged { get; set; }
+        public string Details { get; set; }
+        public int PlannedTime { get; set; }
+        public int RealTime { get; set; }
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+        public DateTime TaskDate { get; set; }
+        public int OrderActive { get; set; }
+        public int OrderGeneral { get; set; }
+        public bool IsFloating { get; set; }
+        public bool IsThing { get; set; }
+        public bool CanBeep { get; set; }
+        public SeperatorEnum Seperator { get; set; }
+        public string SeperatorHour { get; set; }
+        public int TemplateID { get; set; }
         #endregion
 
         #region Constructors
         public TaskInfo()
         {
-            id = 0;
-            title = "";
-            hasDue = false;
-            dueDate = DateTime.Today;
-            taskDate = DateTime.Today;
-            startDate = DateTime.Today;
-            endDate = DateTime.Today;
-            projectID = 0;
-            projectGroupID = 0;
-            blockID = 0;
-            segmentID = 0;
-            isCompleted = false;
-            details = "";
-            plannedTime = 0;
-            realTime = 0;
-            orderActive = 0;
-            orderGeneral = 0;
-            isFloating = false;
-            isThing = false;
-            isActive = false;
-            canBeep = true;
-            coTasks = new Dictionary<long, CoTaskInfo>();
-            chapterID = 0;
-            seperator = SeperatorEnum.None;
-            seperatorHour = "00:00";
-            isPrivilaged = false;
-            templateID = 0;
+            ID = 0;
+            Title = string.Empty;
+            TaskDate = DateTime.Today;
+            StartDate = DateTime.Today;
+            EndDate = DateTime.Today;
+            ProjectID = 0;
+            ProjectGroupID = 0;
+            BlockID = 0;
+            SegmentID = 0;
+            IsCompleted = false;
+            Details = string.Empty;
+            PlannedTime = 0;
+            RealTime = 0;
+            OrderActive = 0;
+            OrderGeneral = 0;
+            IsFloating = false;
+            IsThing = false;
+            CanBeep = true;
+            Seperator = SeperatorEnum.None;
+            SeperatorHour = "00:00";
+            IsPrivilaged = false;
+            TemplateID = 0;
         }
         public TaskInfo(int id, string title)
         {
-            this.id = id;
-            this.title = title;
+            ID = id;
+            Title = title;
         }
         #endregion
 
@@ -85,7 +72,7 @@ namespace WebApiAzure.Models
         {
             int result = 0;
 
-            result = plannedTime - realTime;
+            result = PlannedTime - RealTime;
             if (result < 0) result = 0;
 
             return result;
@@ -94,9 +81,9 @@ namespace WebApiAzure.Models
         {
             int percentage = 0;
 
-            if (plannedTime > 0)
+            if (PlannedTime > 0)
             {
-                percentage = (int)(100 * (float)realTime / (float)plannedTime);
+                percentage = (int)(100 * (float)RealTime / (float)PlannedTime);
                 if (percentage > 100) percentage = 100;
                 if (percentage < 0) percentage = 0;
             }
@@ -107,26 +94,26 @@ namespace WebApiAzure.Models
         {
             float result = 0;
 
-            if (isCompleted)
+            if (IsCompleted)
             {
-                result = realTime;
+                result = RealTime;
             }
             else
             {
-                if (!isFloating)
+                if (!IsFloating)
                 {
-                    if (realTime <= plannedTime)
+                    if (RealTime <= PlannedTime)
                     {
-                        result = plannedTime;
+                        result = PlannedTime;
                     }
-                    else if (realTime > plannedTime)
+                    else if (RealTime > PlannedTime)
                     {
-                        result = realTime;
+                        result = RealTime;
                     }
                 }
                 else
                 {
-                    result = realTime;
+                    result = RealTime;
                 }
             }
 
@@ -136,150 +123,11 @@ namespace WebApiAzure.Models
         {
             int age = 0;
 
-            TimeSpan ts = DateTime.Today.Subtract(startDate);
+            TimeSpan ts = DateTime.Today.Subtract(StartDate);
             age = (int)ts.TotalDays;
             return age;
         }
         #endregion
-
-        #region Public Properties
-        public long ID
-        {
-            get { return id; }
-            set { id = value; }
-        }
-        public string Title
-        {
-            get { return title; }
-            set { title = value; }
-        }
-        public int ProjectID
-        {
-            get { return projectID; }
-            set { projectID = value; }
-        }
-        public int ProjectGroupID
-        {
-            get { return projectGroupID; }
-            set { projectGroupID = value; }
-        }
-        public long BlockID
-        {
-            get { return blockID; }
-            set { blockID = value; }
-        }
-        public long SegmentID
-        {
-            get { return segmentID; }
-            set { segmentID = value; }
-        }
-        public bool IsCompleted
-        {
-            get { return isCompleted; }
-            set { isCompleted = value; }
-        }
-        public bool IsPrivilaged
-        {
-            get { return isPrivilaged; }
-            set { isPrivilaged = value; }
-        }
-        public string Details
-        {
-            get { return details; }
-            set { details = value; }
-        }
-        public int PlannedTime
-        {
-            get { return plannedTime; }
-            set { plannedTime = value; }
-        }
-        public int RealTime
-        {
-            get { return realTime; }
-            set { realTime = value; }
-        }
-        public DateTime StartDate
-        {
-            get { return startDate; }
-            set { startDate = value; }
-        }
-        public DateTime EndDate
-        {
-            get { return endDate; }
-            set { endDate = value; }
-        }
-        public DateTime TaskDate
-        {
-            get { return taskDate; }
-            set { taskDate = value; }
-        }
-        public int OrderActive
-        {
-            get { return orderActive; }
-            set { orderActive = value; }
-        }
-        public int OrderGeneral
-        {
-            get { return orderGeneral; }
-            set { orderGeneral = value; }
-        }
-        public bool IsFloating
-        {
-            get { return isFloating; }
-            set { isFloating = value; }
-        }
-        public bool IsThing
-        {
-            get { return isThing; }
-            set { isThing = value; }
-        }
-        public bool IsActive
-        {
-            get { return isActive; }
-            set { isActive = value; }
-        }
-        public bool CanBeep
-        {
-            get { return canBeep; }
-            set { canBeep = value; }
-        }
-        public Dictionary<long, CoTaskInfo> CoTasks
-        {
-            get { return coTasks; }
-            set { coTasks = value; }
-        }
-        public int ChapterID
-        {
-            get { return chapterID; }
-            set { chapterID = value; }
-        }
-        public bool HasDue
-        {
-            get { return hasDue; }
-            set { hasDue = value; }
-        }
-        public DateTime DueDate
-        {
-            get { return dueDate; }
-            set { dueDate = value; }
-        }
-        public SeperatorEnum Seperator
-        {
-            get { return seperator; }
-            set { seperator = value; }
-        }
-        public string SeperatorHour
-        {
-            get { return seperatorHour; }
-            set { seperatorHour = value; }
-        }
-        public int TemplateID
-        {
-            get { return templateID; }
-            set { templateID = value; }
-        }
-        #endregion
-
 
         object ICloneable.Clone()
         {

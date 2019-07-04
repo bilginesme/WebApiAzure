@@ -9,7 +9,7 @@ namespace WebApiAzure
 {
     public class DTC
     {
-        public enum StatusEnum : int { Running = 1, Success = 2, Fail = 3 }
+        public enum StatusEnum : int { NA = 0, Running = 1, Success = 2, Fail = 3 }
         public enum RankEnum : int { NoRank = 0, RankA = 1, RankB = 2, RankC = 3 }
         public enum SizeEnum : int { Zero = 0, Small = 1, Medium = 2, Large = 3, Huge = 5, Gigantic = 9, Astronomical = 17 }
         public enum RangeEnum : int { Floating = 0, Day = 1, Week = 2, Month = 3, Quarter = 4, Year = 5, Decade = 6, Lifetime = 7 }
@@ -73,24 +73,6 @@ namespace WebApiAzure
             }
         }
 
-        public static string InputText(string text, int maxLength)
-        {
-            if (text == null) return "";
-
-            text = text.Trim();
-            if (string.IsNullOrEmpty(text))
-                return string.Empty;
-            if (text.Length > maxLength)
-                text = text.Substring(0, maxLength);
-
-            text = Regex.Replace(text, "[\\s]{2,}", " ");  //two or more spaces
-            text = Regex.Replace(text, "(<[b|B][r|R]/*>)+|(<[p|P](.|\\n)*?>)", "\n");      //<br>
-            text = Regex.Replace(text, "(\\s*&[n|N][b|B][s|S][p|P];\\s*)+", " "); //&nbsp;
-            text = Regex.Replace(text, "<(.|\\n)*?>", string.Empty);   //any other tags
-            text = text.Replace("'", "''");
-
-            return text;
-        }
         public static string InputTextLight(string text, int maxLength)
         {
             if (text == null) return "";
@@ -267,7 +249,7 @@ namespace WebApiAzure
         {
             public enum DateStyleEnum
             {
-                American, European
+                American, European, Universal
             }
 
             public static DateTime GetMin()
@@ -325,11 +307,13 @@ namespace WebApiAzure
 
                 char[] sepAM = { '/' };
                 char[] sepEU = { '.' };
+                char[] sepUNI = { '-' };
 
                 string[] str = { "" };
 
                 if (dateStyle == DateStyleEnum.American) str = strDate.Split(sepAM, StringSplitOptions.None);
-                if (dateStyle == DateStyleEnum.European) str = strDate.Split(sepEU, StringSplitOptions.None);
+                else if (dateStyle == DateStyleEnum.European) str = strDate.Split(sepEU, StringSplitOptions.None);
+                else if (dateStyle == DateStyleEnum.Universal) str = strDate.Split(sepUNI, StringSplitOptions.None);
 
                 if (str.Length == 3)
                 {
@@ -340,13 +324,20 @@ namespace WebApiAzure
                     {
                         if (dateStyle == DateStyleEnum.American) month = Convert.ToInt16(str[0]);
                         else if (dateStyle == DateStyleEnum.European) day = Convert.ToInt16(str[0]);
+                        else if (dateStyle == DateStyleEnum.Universal) year = Convert.ToInt16(str[0]);
                     }
                     if (DTC.IsNumeric(str[1]))
                     {
                         if (dateStyle == DateStyleEnum.American) day = Convert.ToInt16(str[1]);
                         if (dateStyle == DateStyleEnum.European) month = Convert.ToInt16(str[1]);
+                        if (dateStyle == DateStyleEnum.Universal) month = Convert.ToInt16(str[1]);
                     }
-                    if (DTC.IsNumeric(str[2])) year = Convert.ToInt16(str[2]);
+                    if (DTC.IsNumeric(str[2]))
+                    {
+                        if (dateStyle == DateStyleEnum.American) year = Convert.ToInt16(str[2]);
+                        else if (dateStyle == DateStyleEnum.European) year = Convert.ToInt16(str[2]);
+                        else if (dateStyle == DateStyleEnum.Universal) day = Convert.ToInt16(str[2]);
+                    }
 
                     if (day > 0 && month > 0 && year > 0)
                     {
@@ -669,6 +660,22 @@ namespace WebApiAzure
                     return string.Empty;
                 if (text.Length > maxLength)
                     text = text.Substring(0, maxLength);
+
+                text = Regex.Replace(text, "[\\s]{2,}", " ");  //two or more spaces
+                text = Regex.Replace(text, "(<[b|B][r|R]/*>)+|(<[p|P](.|\\n)*?>)", "\n");      //<br>
+                text = Regex.Replace(text, "(\\s*&[n|N][b|B][s|S][p|P];\\s*)+", " "); //&nbsp;
+                text = Regex.Replace(text, "<(.|\\n)*?>", string.Empty);   //any other tags
+                text = text.Replace("'", "''");
+
+                return text;
+            }
+            public static string InputText(string text)
+            {
+                if (text == null) return "";
+
+                text = text.Trim();
+                if (string.IsNullOrEmpty(text))
+                    return string.Empty;
 
                 text = Regex.Replace(text, "[\\s]{2,}", " ");  //two or more spaces
                 text = Regex.Replace(text, "(<[b|B][r|R]/*>)+|(<[p|P](.|\\n)*?>)", "\n");      //<br>
