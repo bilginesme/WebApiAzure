@@ -12,7 +12,7 @@ namespace WebApiAzure
         string title;
         string details;
         int projectID;
-        long zoneID;
+        long clusterID;
         DateTime startDate;
         DateTime endDate;
         DateTime dueDate;
@@ -34,7 +34,7 @@ namespace WebApiAzure
             dueDate = DateTime.Today;
             hasDue = false;
             projectID = 0;
-            zoneID = 0;
+            clusterID = 0;
             status = DTC.StatusEnum.Running;
             order = 0;
             projectCode = string.Empty;
@@ -67,7 +67,7 @@ namespace WebApiAzure
         public string Title { get { return title; } set { title = value; }}
         public string Details { get { return details; } set { details = value; }}
         public int ProjectID { get { return projectID; } set { projectID = value; }}
-        public long ZoneID { get { return zoneID; } set { zoneID = value; } }
+        public long ClusterID { get { return clusterID; } set { clusterID = value; } }
         public DateTime StartDate { get { return startDate; } set { startDate = value; }}
         public DateTime EndDate { get { return endDate; } set { endDate = value; }}
         public DateTime DueDate { get { return dueDate; } set { dueDate = value; }}

@@ -18,13 +18,13 @@ namespace WebApiAzure.Controllers
             return blocks;
         }
 
-        [Route("api/BlocksEnhanced/{dummy}/{zoneID}/{projectID}")]
-        public IEnumerable<BlockEnhancedInfo> Get(string dummy, long zoneID, int projectID)
+        [Route("api/BlocksEnhanced/{dummy}/{clusterID}/{projectID}")]
+        public IEnumerable<BlockEnhancedInfo> Get(string dummy, long clusterID, int projectID)
         {
             // WARNING : This is extremely inefficient. Find another way of getting it
-            ZoneInfo zone = DB.Zones.GetZone(zoneID);
+            ClusterInfo cluster = DB.Clusters.GetCluster(clusterID);
             List<BlockEnhancedInfo> blocks = new List<BlockEnhancedInfo>();
-            blocks = DB.GetBlocksEnhanced(projectID).FindAll(i=>i.ZoneID == zoneID);
+            blocks = DB.GetBlocksEnhanced(projectID).FindAll(i=>i.ClusterID == clusterID);
 
             return blocks;
         }

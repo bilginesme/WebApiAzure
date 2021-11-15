@@ -8,115 +8,56 @@ namespace WebApiAzure.Models
     public class IdeaInfo
     {
         #region Private Members
-        int id;
-        string title;
-        DateTime creationDate;
-        int ideaGroupID;
-        int order;
-        string details;
-        DTC.SizeEnum impact;
-        DTC.StatusEnum status;
-        int innovativePoint;
-        bool isFocused;
-        bool isActionable;
-        DateTime actionDueDate;
+        public int ID { get; set; }
+        public string Title { get; set; }
+        public DateTime CreationDate { get; set; }
+        public int Order { get; set; }
+        public int IdeaGroupID { get; set; }
+        public string Details { get; set; }
+        public DTC.SizeEnum Impact { get; set; }
+        public DTC.StatusEnum Status { get; set; }
+        public int InnovativePoint { get; set; }
+        public bool IsFocused { get; set; }
+        public bool IsActionable { get; set; }
+        public DateTime ActionDueDate { get; set; }
+        public string ProjectNameLazy { get; set; }
+        public string ImageNameLazy { get; set; }
         #endregion
 
         #region Constructors
         public IdeaInfo()
         {
-            id = 0;
-            title = "";
-            creationDate = DateTime.Today;
-            ideaGroupID = 0;
-            order = 0;
-            details = "";
-            impact = DTC.SizeEnum.Zero;
-            status = DTC.StatusEnum.Running;
-            innovativePoint = 0;
-            isFocused = false;
-            isActionable = false;
-            actionDueDate = DateTime.Today;
+            ID = 0;
+            Title = string.Empty;
+            CreationDate = DateTime.Today;
+            IdeaGroupID = 0;
+            Order = 0;
+            Details = string.Empty;
+            Impact = DTC.SizeEnum.Zero;
+            Status = DTC.StatusEnum.Running;
+            InnovativePoint = 0;
+            IsFocused = false;
+            IsActionable = false;
+            ActionDueDate = DateTime.Today;
+            ProjectNameLazy = string.Empty;
+            ImageNameLazy = string.Empty;
         }
         #endregion
 
         #region Public Methods
         public bool HasDetails()
         {
-            if (details.Length > 0) return true;
+            if (Details.Length > 0) return true;
             else return false;
         }
         public int GetDaysForAction(DateTime date)
         {
             int result = 0;
 
-            TimeSpan ts = actionDueDate.Subtract(date);
+            TimeSpan ts = ActionDueDate.Subtract(date);
             result = (int)Math.Round(ts.TotalDays);
 
             return result;
-        }
-        #endregion
-
-        #region Public Properties
-        public int ID
-        {
-            get { return id; }
-            set { id = value; }
-        }
-        public string Title
-        {
-            get { return title; }
-            set { title = value; }
-        }
-        public DateTime CreationDate
-        {
-            get { return creationDate; }
-            set { creationDate = value; }
-        }
-        public int Order
-        {
-            get { return order; }
-            set { order = value; }
-        }
-        public int IdeaGroupID
-        {
-            get { return ideaGroupID; }
-            set { ideaGroupID = value; }
-        }
-        public string Details
-        {
-            get { return details; }
-            set { details = value; }
-        }
-        public DTC.SizeEnum Impact
-        {
-            get { return impact; }
-            set { impact = value; }
-        }
-        public DTC.StatusEnum Status
-        {
-            get { return status; }
-            set { status = value; }
-        }
-        public int InnovativePoint
-        {
-            get { return innovativePoint; }
-            set { innovativePoint = value; }
-        }
-        public bool IsFocused
-        {
-            get { return isFocused; }
-            set { isFocused = value; }
-        }
-        public bool IsActionable
-        {
-            get { return isActionable; }
-            set { isActionable = value; }
-        }
-        public DateTime ActionDueDate
-        {
-            get { return actionDueDate; }
-            set { actionDueDate = value; }
         }
         #endregion
     }

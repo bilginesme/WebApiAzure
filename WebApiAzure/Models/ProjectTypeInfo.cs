@@ -8,32 +8,32 @@ namespace WebApiAzure.Models
     public class ProjectTypeInfo
     {
         #region Private Members
-        int projectTypeID;
-        string projectTypeName;
-        string projectTypeCode;
-        int projectTypeOrder;
+        int id;
+        string name;
+        string code;
+        int order;
         #endregion
 
         #region Constructors
         public ProjectTypeInfo()
         {
-            projectTypeID = 0;
-            projectTypeName = "";
-            projectTypeCode = "";
-            projectTypeOrder = 0;
+            id = 0;
+            name = "";
+            code = "";
+            order = 0;
         }
-        public ProjectTypeInfo(int projectTypeID, string projectTypeName)
+        public ProjectTypeInfo(int id, string name)
         {
-            this.projectTypeID = projectTypeID;
-            this.projectTypeName = projectTypeName;
+            this.id = id;
+            this.name = name;
         }
         #endregion
 
         #region Public Properties
-        public int ProjectTypeID { get { return projectTypeID; } set { projectTypeID = value; }}
-        public string ProjectTypeName { get { return projectTypeName; } set { projectTypeName = value; }}
-        public string ProjectTypeCode { get { return projectTypeCode; } set { projectTypeCode = value; }}
-        public int ProjectTypeOrder { get { return projectTypeOrder; } set { projectTypeOrder = value; }}
+        public int ID { get { return id; } set { id = value; }}
+        public string Name { get { return name; } set { name = value; }}
+        public string Code { get { return code; } set { code = value; }}
+        public int Order { get { return order; } set { order = value; }}
         #endregion
     }
 }

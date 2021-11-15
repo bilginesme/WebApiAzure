@@ -123,6 +123,10 @@ namespace WebApiAzure.Controllers
             {
                 DB.Goals.UpdateGoalAsCompleted(goalID);
             }
+            else if (actionID == 2)
+            {
+                DB.Goals.PostponeTotheNextDay(goalID);
+            }
         }
 
         [HttpDelete]

@@ -59,8 +59,8 @@ namespace WebApiAzure.Models
         public float ContributionMax { get; set; }
         public float HoursPerUnit { get; set; }
         public bool IsAchieved { get; private set; }
-
         #endregion
+        
         #region Constructors
         public GoalInfo()
         {

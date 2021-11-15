@@ -35,7 +35,6 @@ namespace WebApiAzure.Controllers
             return tasks;
         }
  
-
         [HttpGet]
         [Route("api/Tasks/{id}")]
         public TaskInfo Get(long id)

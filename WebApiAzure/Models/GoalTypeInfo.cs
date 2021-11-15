@@ -22,7 +22,6 @@ namespace WebApiAzure.Models
         public enum NatureEnum : int { Positive = 1, Negative = -1, BothPossible = 0 }
         #endregion
 
-
         #region  Members
         public int ID { get; set; }
         public int Order { get; set; }

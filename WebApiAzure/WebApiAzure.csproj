@@ -249,8 +249,16 @@
     <Compile Include="Areas\HelpPage\XmlDocumentationProvider.cs" />
     <Compile Include="Controllers\AccountController.cs" />
     <Compile Include="Controllers\ActionableProjectsController.cs" />
-    <Compile Include="Controllers\WeeksController.cs" />
     <Compile Include="Controllers\DaysController.cs" />
+    <Compile Include="Controllers\GoalsOfFocusController.cs" />
+    <Compile Include="Controllers\OwnerController.cs" />
+    <Compile Include="Controllers\GoalTypesController.cs" />
+    <Compile Include="Controllers\GreatIdeasController.cs" />
+    <Compile Include="Controllers\ProjectReportsController.cs" />
+    <Compile Include="Controllers\ProjectTypesController.cs" />
+    <Compile Include="Controllers\RealHoursController.cs" />
+    <Compile Include="Controllers\WeeksController.cs" />
+    <Compile Include="Controllers\EventsController.cs" />
     <Compile Include="Controllers\ProjectPerformancesController.cs" />
     <Compile Include="Controllers\ProjectsController.cs" />
     <Compile Include="Controllers\ProjectGroupsController.cs" />
@@ -258,7 +266,7 @@
     <Compile Include="Controllers\IdeaGroupsController.cs" />
     <Compile Include="Controllers\OldestBlocksController.cs" />
     <Compile Include="Controllers\TasksController.cs" />
-    <Compile Include="Controllers\ZonesController.cs" />
+    <Compile Include="Controllers\ClustersController.cs" />
     <Compile Include="Controllers\BlocksEnhacedController.cs" />
     <Compile Include="Controllers\GoalGroupsController.cs" />
     <Compile Include="Controllers\GoalsController.cs" />
@@ -281,6 +289,8 @@
     <Compile Include="Models\AccountViewModels.cs" />
     <Compile Include="Models\BlockEnhancedInfo.cs" />
     <Compile Include="Models\BlockPerfInfo.cs" />
+    <Compile Include="Models\ReportItemInfo.cs" />
+    <Compile Include="Models\GenericItemInfo.cs" />
     <Compile Include="Models\WeeklyPerformanceInfo.cs" />
     <Compile Include="Models\BookInfo.cs" />
     <Compile Include="Models\BookProcessInfo.cs" />
@@ -292,7 +302,7 @@
     <Compile Include="Models\GoalInfo.cs" />
     <Compile Include="Models\GoalTemplateInfo.cs" />
     <Compile Include="Models\GoalTypeInfo.cs" />
-    <Compile Include="Models\ZoneInfo.cs" />
+    <Compile Include="Models\ClusterInfo.cs" />
     <Compile Include="Models\IdeaInfo.cs" />
     <Compile Include="Models\IdeGroupInfo.cs" />
     <Compile Include="Models\NewsInfo.cs" />

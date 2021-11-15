@@ -5,7 +5,7 @@ using System.Web;
 
 namespace WebApiAzure.Models
 {
-    public class ZoneInfo
+    public class ClusterInfo
     {
         #region Private Members
         long id;
@@ -19,7 +19,7 @@ namespace WebApiAzure.Models
         #endregion
 
         #region Constructors
-        public ZoneInfo()
+        public ClusterInfo()
         {
             id = 0;
             title = string.Empty;
