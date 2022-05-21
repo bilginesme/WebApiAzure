@@ -18,6 +18,14 @@ namespace WebApiAzure.Controllers
             return blocks;
         }
 
+        [Route("api/Blocks/{projectID}/{clusterID}/{isOnlyRunning}")]
+        public IEnumerable<BlockInfo> Get(int projectID, long clusterID, bool isOnlyRunning)
+        {
+            List<BlockInfo> blocks = DB.Blocks.GetBlocksOfCluster(clusterID);
+
+            return blocks;
+        }
+
         [HttpGet]
         [Route("api/Blocks/{blockID}")]
         public BlockInfo Get(long blockID)

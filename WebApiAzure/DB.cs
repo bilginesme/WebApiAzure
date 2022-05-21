@@ -2484,9 +2484,12 @@ namespace WebApiAzure
                 foreach(ClusterInfo cluster in clusters)
                     percentComplete += cluster.Contribution;
 
-                float totalDaysNeeded =  daysSpent / percentComplete;
-                result = project.StartDate.AddDays(totalDaysNeeded);
-
+                if(percentComplete > 0)
+                {
+                    float totalDaysNeeded = daysSpent / percentComplete;
+                    result = project.StartDate.AddDays(totalDaysNeeded);
+                }
+                
                 return result;
             }
             public static void UpdateCompletionRateAndHoursNeeded(int projectID)
@@ -2556,6 +2559,7 @@ namespace WebApiAzure
                 ClusterInfo info = new ClusterInfo();
 
                 info.ID = Convert.ToInt32(dr["ClusterID"]);
+                info.SubProjectID = Convert.ToInt32(dr["SubProjectID"]);
                 info.Title = Convert.ToString(dr["ClusterTitle"]);
                 info.HoursNeeded = Convert.ToSingle(dr["HoursNeeded"]);
                 info.IsCompleted = Convert.ToBoolean(dr["IsCompleted"]);
@@ -2578,7 +2582,24 @@ namespace WebApiAzure
 
                 return info;
             }
-            public static List<ClusterInfo> GetClusters(int projectID, bool computeAllParameters)
+            public static List<ClusterInfo> GetClusters(int subProjectID, bool computeAllParameters)
+            {
+                List<ClusterInfo> data = new List<ClusterInfo>();
+
+                string strSQL = "SELECT * FROM Clusters " +
+                    " WHERE SubProjectID = " + subProjectID +
+                    " ORDER BY ClusterTitle";
+
+                DataTable dt = RunExecuteReader(strSQL);
+                foreach (DataRow dr in dt.Rows)
+                    data.Add(GetCluster(dr));
+
+                if (computeAllParameters)
+                    ComputeAllPArameters(data);
+
+                return data;
+            }
+            public static List<ClusterInfo> GetClustersOfProject(int projectID, bool computeAllParameters)
             {
                 List<ClusterInfo> data = new List<ClusterInfo>();
 
@@ -2590,40 +2611,8 @@ namespace WebApiAzure
                 foreach (DataRow dr in dt.Rows)
                     data.Add(GetCluster(dr));
 
-                if(computeAllParameters)
-                {
-                    strSQL = "SELECT Clusters.ClusterID, SUM(Tasks.RealTime) AS TotalMinutes " +
-                        " FROM Clusters " +
-                        " INNER JOIN Blocks ON Clusters.ClusterID = Blocks.ClusterID " +
-                        " INNER JOIN Segments ON Blocks.BlockID = Segments.BlockID " +
-                        " INNER JOIN Tasks ON Segments.SegmentID = Tasks.SegmentID " +
-                        " WHERE Clusters.ProjectID = " + projectID +
-                        " GROUP BY Clusters.ClusterID";
-
-                    dt = RunExecuteReader(strSQL);
-                    foreach (DataRow dr in dt.Rows)
-                    {
-                        long clusterID = Convert.ToInt32(dr["ClusterID"]);
-                        ClusterInfo cluster = data.Find(i => i.ID == clusterID);
-                        if (cluster != null)
-                        {
-                            float hoursSpent = Convert.ToSingle(dr["TotalMinutes"]) / 60f;
-                            cluster.HoursSpent = hoursSpent;
-                            cluster.RatioSpentNeeded = cluster.GetRatioSpentNeeded();
-                        }
-                    }
-
-                    float overall = data.Sum(i=>i.GetEffectiveHoursNeeded());
-
-                    if(overall > 0)
-                    {
-                        foreach (ClusterInfo cluster in data)
-                        {
-                            cluster.Contribution = cluster.RatioSpentNeeded * (cluster.GetEffectiveHoursNeeded() / overall);
-                            cluster.ContributionMax = cluster.GetEffectiveHoursNeeded() / overall;
-                        }
-                    }                    
-                }
+                if (computeAllParameters)
+                   ComputeAllPArameters(data);
 
                 return data;
             }
@@ -2634,7 +2623,7 @@ namespace WebApiAzure
                 if (cluster.ID == 0)
                 {
                     SQL = "SET NOCOUNT ON INSERT INTO Clusters " +
-                         " (ClusterTitle, HoursNeeded, IsCompleted, ProjectID, " +
+                         " (ClusterTitle, HoursNeeded, IsCompleted, ProjectID, SubProjectID," +
                          " StartDate, EndDate, Details " +
                          " )" +
                          " VALUES (" +
@@ -2642,6 +2631,7 @@ namespace WebApiAzure
                          cluster.HoursNeeded + "," +
                          Convert.ToInt32(cluster.IsCompleted) + "," +
                          cluster.ProjectID + "," +
+                         cluster.SubProjectID + "," +
                          DTC.Date.ObtainGoodDT(cluster.StartDate, true) + "," +
                          DTC.Date.ObtainGoodDT(cluster.EndDate, true) + "," +
                          "'" + DTC.Control.InputText(cluster.Details, 255) + "'" +
@@ -2655,6 +2645,7 @@ namespace WebApiAzure
                        " HoursNeeded = " + cluster.HoursNeeded + "," +
                        " IsCompleted = " + Convert.ToInt16(cluster.IsCompleted) + "," +
                        " ProjectID = " + cluster.ProjectID + "," +
+                       " SubProjectID = " + cluster.SubProjectID + "," +
                        " StartDate = " + DTC.Date.ObtainGoodDT(cluster.StartDate, true) + "," +
                        " EndDate = " + DTC.Date.ObtainGoodDT(cluster.EndDate, true) + "," +
                        " Details = '" + DTC.Control.InputText(cluster.Details, 999) + "'" +
@@ -2682,11 +2673,204 @@ namespace WebApiAzure
 
                 return isOK;
             }
+
+            private static void ComputeAllPArameters(List<ClusterInfo> data)
+            {
+                int projectID = 0;
+                if (data.Count > 0)
+                    projectID = data.First().ProjectID;
+
+                List<BlockInfo> blocks = Blocks.GetBlocks(projectID);
+                string strSQL = "SELECT Clusters.ClusterID, SUM(Tasks.RealTime) AS TotalMinutes " +
+                    " FROM Clusters " +
+                    " INNER JOIN Blocks ON Clusters.ClusterID = Blocks.ClusterID " +
+                    " INNER JOIN Segments ON Blocks.BlockID = Segments.BlockID " +
+                    " INNER JOIN Tasks ON Segments.SegmentID = Tasks.SegmentID " +
+                    " WHERE Clusters.ProjectID = " + projectID +
+                    " GROUP BY Clusters.ClusterID";
+
+                DataTable dt = RunExecuteReader(strSQL);
+                foreach (DataRow dr in dt.Rows)
+                {
+                    long clusterID = Convert.ToInt32(dr["ClusterID"]);
+                    ClusterInfo cluster = data.Find(i => i.ID == clusterID);
+                    if (cluster != null)
+                    {
+                        List<BlockInfo> blocksOfCluster = blocks.FindAll(q => q.ClusterID == cluster.ID);
+
+                        cluster.NumBlocksTotal = 0;
+                        cluster.NumBlocksCompleted = 0;
+
+                        if (blocksOfCluster != null)
+                        {
+                            cluster.NumBlocksTotal = blocksOfCluster.Count;
+                            cluster.NumBlocksCompleted = blocksOfCluster.FindAll(q => q.Status != DTC.StatusEnum.Running).Count;
+                        }
+
+                        float hoursSpent = Convert.ToSingle(dr["TotalMinutes"]) / 60f;
+                        cluster.HoursSpent = hoursSpent;
+                        cluster.RatioSpentNeeded = cluster.GetRatioSpentNeeded();
+                    }
+                }
+
+                float overall = data.Sum(i => i.GetEffectiveHoursNeeded());
+
+                if (overall > 0)
+                {
+                    foreach (ClusterInfo cluster in data)
+                    {
+                        cluster.Contribution = cluster.RatioSpentNeeded * (cluster.GetEffectiveHoursNeeded() / overall);
+                        cluster.ContributionMax = cluster.GetEffectiveHoursNeeded() / overall;
+                    }
+                }
+            }
+        }
+
+        public class SubProjects
+        {
+            public static SubProjectInfo GetSubProject(DataRow dr)
+            {
+                SubProjectInfo info = new SubProjectInfo();
+
+                info.ID = Convert.ToInt32(dr["SubProjectID"]);
+                info.Name = Convert.ToString(dr["SubProjectName"]);
+                info.ProjectID = Convert.ToInt32(dr["ProjectID"]);
+                info.IsCompleted = Convert.ToBoolean(dr["IsCompleted"]);
+                if (dr["StartDate"] != DBNull.Value) info.StartDate = Convert.ToDateTime(dr["StartDate"]);
+                if (dr["EndDate"] != DBNull.Value) info.EndDate = Convert.ToDateTime(dr["EndDate"]);
+                if (dr["Details"] != DBNull.Value) info.Details = Convert.ToString(dr["Details"]);
+
+                return info;
+            }
+            public static SubProjectInfo GetSubProject(long subProjectID)
+            {
+                SubProjectInfo info = new SubProjectInfo();
+
+                string strSQL = "SELECT * FROM SubProjects " +
+                    " WHERE SubProjectID = " + subProjectID;
+                DataTable dt = RunExecuteReader(strSQL);
+                if (dt.Rows.Count > 0)
+                    info = GetSubProject(dt.Rows[0]);
+
+                return info;
+            }
+            public static List<SubProjectInfo> GetSubProjects(int projectID, bool isOnlyRunning)
+            {
+                List<SubProjectInfo> data = new List<SubProjectInfo>();
+
+                string strFilter = string.Empty;
+
+                if(isOnlyRunning)
+                    strFilter = " AND IsCompleted = 0 ";
+
+                string strSQL = "SELECT * FROM SubProjects " +
+                    " WHERE ProjectID = " + projectID +
+                    strFilter +
+                    " ORDER BY SubProjectOrder";
+
+                DataTable dt = RunExecuteReader(strSQL);
+                foreach (DataRow dr in dt.Rows)
+                    data.Add(GetSubProject(dr));
+             
+                return data;
+            }
+            public static List<SubProjectInfo> GetSubProjects(int projectID, bool isOnlyRunning, bool isCalculatePerformance)
+            {
+                List<SubProjectInfo> subProjects = GetSubProjects(projectID, isOnlyRunning);
+
+                if(isCalculatePerformance)
+                {
+                    List<ClusterInfo> clusters = DB.Clusters.GetClustersOfProject(projectID, true);
+
+                    foreach(ClusterInfo cluster in clusters)
+                    {
+                        SubProjectInfo subProject = subProjects.Find(q=>q.ID == cluster.SubProjectID);
+                        if(subProject != null)
+                        {
+                            subProject.NumClustersTotal++;
+                            subProject.HoursNeeded += cluster.HoursNeeded;
+                            subProject.HoursSpent += cluster.HoursSpent;
+                            subProject.RatioSpentNeeded += cluster.RatioSpentNeeded;
+                            subProject.Contribution += cluster.Contribution;
+                            subProject.ContributionMax += cluster.ContributionMax;
+                        }
+                    }
+
+                    foreach(SubProjectInfo sP in subProjects)
+                    {
+                        if(sP.ContributionMax > 0)
+                        {
+                            sP.ContributionPercentage = 100f * sP.Contribution / sP.ContributionMax;
+                            if (sP.ContributionPercentage > 100)
+                                sP.ContributionPercentage = 100;
+                        }
+                        else
+                        {
+                            sP.ContributionPercentage = 0;
+                        }
+                    }
+                }
+
+                return subProjects;
+            }
+            public static long AddUpdateSubProject(SubProjectInfo subProject)
+            {
+                string strSQL;
+
+                if (subProject.ID == 0)
+                {
+                    strSQL = "SET NOCOUNT ON INSERT INTO SubProjects " +
+                         " (SubProjectName, ProjectID, IsCompleted, " +
+                         " StartDate, EndDate, Details " +
+                         " )" +
+                         " VALUES (" +
+                         "'" + DTC.Control.InputText(subProject.Name, 50) + "'," +
+                         subProject.ProjectID + "," +
+                         Convert.ToInt32(subProject.IsCompleted) + "," +
+                         DTC.Date.ObtainGoodDT(subProject.StartDate, true) + "," +
+                         DTC.Date.ObtainGoodDT(subProject.EndDate, true) + "," +
+                         "'" + DTC.Control.InputText(subProject.Details, 255) + "'" +
+                         ") SELECT SCOPE_IDENTITY() AS SubProjectID";
+                    subProject.ID = RunExecuteScalar(strSQL);
+                }
+                else
+                {
+                    strSQL = "UPDATE SubProjects SET " +
+                       " SubProjectName = '" + DTC.Control.InputText(subProject.Name, 255) + "'," +
+                       " ProjectID = " + subProject.ProjectID + "," +
+                       " IsCompleted = " + Convert.ToInt16(subProject.IsCompleted) + "," +
+                       " StartDate = " + DTC.Date.ObtainGoodDT(subProject.StartDate, true) + "," +
+                       " EndDate = " + DTC.Date.ObtainGoodDT(subProject.EndDate, true) + "," +
+                       " Details = '" + DTC.Control.InputText(subProject.Details, 999) + "'" +
+                       " WHERE SubProjectID = " + subProject.ID;
+                    RunNonQuery(strSQL);
+                }
+
+                return subProject.ID;
+            }
+            public static bool DeleteSubProject(long subProjectID)
+            {
+                bool isOK = true;
+
+                string strSQL = "SELECT * FROM Clusters " +
+                    " WHERE SubProjectID = " + subProjectID;
+                DataTable dt = RunExecuteReader(strSQL);
+                if (dt.Rows.Count > 0)
+                    isOK = false;
+
+                if (isOK)
+                {
+                    strSQL = "DELETE SubProjects WHERE SubProjectID = " + subProjectID;
+                    RunNonQuery(strSQL);
+                }
+
+                return isOK;
+            }
         }
 
         public class Blocks
         {
-            public static BlockInfo GetBlock(DataRow dr)
+            public static BlockInfo GetBlockWithGoal(DataRow dr)
             {
                 BlockInfo info = new BlockInfo();
 
@@ -2707,6 +2891,26 @@ namespace WebApiAzure
 
                 return info;
             }
+            public static BlockInfo GetBlock(DataRow dr)
+            {
+                BlockInfo info = new BlockInfo();
+
+                info.ID = Convert.ToInt32(dr["BlockID"]);
+                info.Title = Convert.ToString(dr["Title"]);
+                info.HasDue = Convert.ToBoolean(dr["HasDue"]);
+                info.StartDate = Convert.ToDateTime(dr["StartDate"]);
+                if (dr["EndDate"] != DBNull.Value) info.EndDate = Convert.ToDateTime(dr["EndDate"]);
+                if (dr["DueDate"] != DBNull.Value) info.DueDate = Convert.ToDateTime(dr["DueDate"]);
+                if (Convert.ToInt32(dr["ProjectID"]) > 0)
+                    info.ProjectID = Convert.ToInt32(dr["ProjectID"]);
+                info.ClusterID = Convert.ToInt32(dr["ClusterID"]);
+                if (dr["Details"] != DBNull.Value) info.Details = Convert.ToString(dr["Details"]);
+                info.Status = (DTC.StatusEnum)Convert.ToInt32(dr["StatusID"]);
+                info.Order = Convert.ToInt32(dr["TheOrder"]);
+                if (dr["ProjectCode"] != DBNull.Value) info.ProjectCode = Convert.ToString(dr["ProjectCode"]);
+
+                return info;
+            }
             public static BlockInfo GetBlock(long blockID)
             {
                 BlockInfo info = new BlockInfo();
@@ -2719,11 +2923,15 @@ namespace WebApiAzure
                     " WHERE Blocks.BlockID = " + blockID;
                 DataTable dt = RunExecuteReader(strSQL);
                 if (dt.Rows.Count > 0)
-                    info = GetBlock(dt.Rows[0]);
+                    info = GetBlockWithGoal(dt.Rows[0]);
 
                 return info;
             }
             public static List<BlockInfo> GetBlocks(ProjectInfo project, bool sortByBlockName)
+            {
+                return GetBlocks(project.ID, sortByBlockName);
+            }
+            public static List<BlockInfo> GetBlocks(int projectID, bool sortByBlockName)
             {
                 List<BlockInfo> data = new List<BlockInfo>();
 
@@ -2736,8 +2944,51 @@ namespace WebApiAzure
                     " LEFT OUTER JOIN Goals ON Blocks.BlockID = Goals.ItemID" +
                     " AND Goals.GoalTypeID = " + (int)GoalTypeInfo.TypeEnum.Block +
                     " AND Goals.StatusID = " + (int)DTC.StatusEnum.Running +
-                    " WHERE Blocks.ProjectID = " + project.ID +
+                    " WHERE Blocks.ProjectID = " + projectID +
                     strOrderBY;
+
+                int order = 1;
+
+                DataTable dt = RunExecuteReader(strSQL);
+                foreach (DataRow dr in dt.Rows)
+                {
+                    BlockInfo info = GetBlockWithGoal(dr);
+
+                    info.Order = order;
+                    data.Add(info);
+                    order++;
+                }
+
+                return data;
+            }
+            public static List<BlockInfo> GetBlocks(int projectID)
+            {
+                List<BlockInfo> data = new List<BlockInfo>();
+
+                string strSQL = "SELECT * FROM Blocks " +
+                    " WHERE ProjectID = " + projectID +
+                    " ORDER BY Title ASC";
+
+                int order = 1;
+
+                DataTable dt = RunExecuteReader(strSQL);
+                foreach (DataRow dr in dt.Rows)
+                {
+                    BlockInfo info = GetBlock(dr);
+
+                    info.Order = order;
+                    data.Add(info);
+                    order++;
+                }
+
+                return data;
+            }
+            public static List<BlockInfo> GetBlocksOfCluster(long clusterID)
+            {
+                List<BlockInfo> data = new List<BlockInfo>();
+
+                string strSQL = "SELECT * FROM Blocks " +
+                    " WHERE Blocks.ClusterID = " + clusterID;
 
                 int order = 1;
 
@@ -2772,7 +3023,7 @@ namespace WebApiAzure
                     " ORDER BY Blocks.EndDate DESC";
                 DataTable dt = RunExecuteReader(strSQL);
                 foreach (DataRow dr in dt.Rows)
-                        data.Add(GetBlock(dr));
+                        data.Add(GetBlockWithGoal(dr));
 
                 return data;
             }
@@ -2792,7 +3043,7 @@ namespace WebApiAzure
                     " ORDER BY Blocks.DueDate ASC";
                 DataTable dt = RunExecuteReader(strSQL);
                 foreach (DataRow dr in dt.Rows)
-                        data.Add(GetBlock(dr));
+                        data.Add(GetBlockWithGoal(dr));
 
                 return data;
             }
@@ -5880,8 +6131,10 @@ namespace WebApiAzure
                 if (isFocusedOnesOnTop)
                     strOrderBY = "IdeaGroups.IsFocused DESC,";
 
-                string strSQL = "SELECT TOP " + numIdeaGroups + " IdeaGroups.IdeaGroupID, IdeaGroups.IdeaGroupTitle, IdeaGroups.CreationDate, IdeaGroups.LastUpdateDate, " +
-                    " IdeaGroups.ProjectGroupID, IdeaGroups.ProjectID, ProjectLabelShort, ProjectLabelLong, IdeaGroups.Details, IdeaGroups.IsFocused, COUNT(Ideas.IdeaID) AS TOTAL " +
+                string strSQL = "SELECT TOP " + numIdeaGroups + " IdeaGroups.IdeaGroupID, IdeaGroups.IdeaGroupTitle, " +
+                    " IdeaGroups.CreationDate, IdeaGroups.LastUpdateDate, " +
+                    " IdeaGroups.ProjectGroupID, IdeaGroups.ProjectID, ProjectLabelShort, ProjectLabelLong, IdeaGroups.Details, " +
+                    " IdeaGroups.IsFocused, COUNT(Ideas.IdeaID) AS TOTAL " +
                     " FROM IdeaGroups " +
                     " LEFT OUTER JOIN Ideas ON IdeaGroups.IdeaGroupID = Ideas.IdeaGroupID " +
                     " GROUP BY IdeaGroups.IsFocused, IdeaGroups.LastUpdateDate, IdeaGroups.IdeaGroupID, ProjectLabelShort, ProjectLabelLong, IdeaGroups.IdeaGroupTitle, " +

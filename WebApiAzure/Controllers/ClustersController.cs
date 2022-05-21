@@ -10,10 +10,18 @@ namespace WebApiAzure.Controllers
 {
     public class ClustersController : ApiController
     {
-        [Route("api/Clusters/{projectID}/{isOnlyRunning}")]
-        public IEnumerable<ClusterInfo> Get(int projectID, bool isOnlyRunning)
+        [Route("api/Clusters/{projectID}/{computeAllParameters}")]
+        public IEnumerable<ClusterInfo> Get(int projectID, bool computeAllParameters)
         {
-            List<ClusterInfo> clusters = DB.Clusters.GetClusters(projectID, true);
+            List<ClusterInfo> clusters = DB.Clusters.GetClustersOfProject(projectID, true);
+
+            return clusters;
+        }
+
+        [Route("api/Clusters/{subProjectID}/{computeAllParameters}/{removeThisParameter}")]
+        public IEnumerable<ClusterInfo> Get(int subProjectID, bool computeAllParameters, int removeThisParameter)
+        {
+            List<ClusterInfo> clusters = DB.Clusters.GetClusters(subProjectID, true);
 
             return clusters;
         }

@@ -188,7 +188,6 @@ C:\Users\Bilgin\Desktop\Angular\WebApiAzure\WebApiAzure\obj\Debug\WebApiAzure.dl
 C:\Users\Bilgin\Desktop\Angular\WebApiAzure\WebApiAzure\obj\Debug\WebApiAzure.pdb
 C:\Users\Bilgin\Desktop\Angular\WebApiAzure\WebApiAzure\obj\Debug\WebApiAzure.csprojResolveAssemblyReference.cache
 C:\Users\Bilgin\Desktop\Angular\WebApiAzure\WebApiAzure\bin\WebApiAzure.dll.config
-C:\inetpub\wwwroot\WebApiAzure\WebApiAzure\obj\Debug\WebApiAzure.csproj.CoreCompileInputs.cache
 C:\inetpub\wwwroot\WebApiAzure\WebApiAzure\bin\ApplicationInsights.config
 C:\inetpub\wwwroot\WebApiAzure\WebApiAzure\bin\roslyn\csc.exe
 C:\inetpub\wwwroot\WebApiAzure\WebApiAzure\bin\roslyn\Microsoft.Build.Tasks.CodeAnalysis.dll
@@ -281,7 +280,8 @@ C:\inetpub\wwwroot\WebApiAzure\WebApiAzure\bin\Microsoft.Owin.Security.Google.xm
 C:\inetpub\wwwroot\WebApiAzure\WebApiAzure\bin\Microsoft.Owin.Security.Twitter.xml
 C:\inetpub\wwwroot\WebApiAzure\WebApiAzure\bin\Microsoft.Owin.Security.MicrosoftAccount.xml
 C:\inetpub\wwwroot\WebApiAzure\WebApiAzure\bin\System.Web.Http.Owin.xml
+C:\inetpub\wwwroot\WebApiAzure\WebApiAzure\obj\Debug\WebApiAzure.csproj.AssemblyReference.cache
+C:\inetpub\wwwroot\WebApiAzure\WebApiAzure\obj\Debug\WebApiAzure.csproj.CoreCompileInputs.cache
 C:\inetpub\wwwroot\WebApiAzure\WebApiAzure\obj\Debug\WebApiAzure.csproj.CopyComplete
 C:\inetpub\wwwroot\WebApiAzure\WebApiAzure\obj\Debug\WebApiAzure.dll
 C:\inetpub\wwwroot\WebApiAzure\WebApiAzure\obj\Debug\WebApiAzure.pdb
-C:\inetpub\wwwroot\WebApiAzure\WebApiAzure\obj\Debug\WebApiAzure.csproj.AssemblyReference.cache

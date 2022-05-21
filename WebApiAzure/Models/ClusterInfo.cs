@@ -9,6 +9,7 @@ namespace WebApiAzure.Models
     {
         #region Private Members
         long id;
+        long subProjectID;
         string title;
         float hoursNeeded, hoursSpent;
         int projectID;
@@ -16,12 +17,14 @@ namespace WebApiAzure.Models
         bool isCompleted;
         DateTime startDate, endDate;
         float ratioSpentNeeded, contribution, contributionMax;
+        float numBlocksCompleted, numBlocksTotal;
         #endregion
 
         #region Constructors
         public ClusterInfo()
         {
             id = 0;
+            subProjectID = 0;
             title = string.Empty;
             hoursNeeded = 0;
             projectID = 0;
@@ -32,6 +35,8 @@ namespace WebApiAzure.Models
             ratioSpentNeeded = 0;
             contribution = 0;
             contributionMax = 0;
+            numBlocksTotal = 0;
+            numBlocksCompleted = 0;
         }
         #endregion
 
@@ -66,6 +71,7 @@ namespace WebApiAzure.Models
 
         #region Public Properties
         public long ID { get { return id; } set { id = value; }}
+        public long SubProjectID { get { return subProjectID; } set { subProjectID = value; } }
         public string Title { get { return title; } set { title = value; }}
         public float HoursNeeded { get { return hoursNeeded; } set { hoursNeeded = value; } }
         public float HoursSpent { get { return hoursSpent; } set { hoursSpent = value; } }
@@ -77,6 +83,8 @@ namespace WebApiAzure.Models
         public float RatioSpentNeeded { get { return ratioSpentNeeded; } set { ratioSpentNeeded = value; } }
         public float Contribution { get { return contribution; } set { contribution = value; } }
         public float ContributionMax { get { return contributionMax; } set { contributionMax = value; } }
+        public float NumBlocksTotal { get { return numBlocksTotal; } set { numBlocksTotal = value; } }
+        public float NumBlocksCompleted { get { return numBlocksCompleted; } set { numBlocksCompleted = value; } }
         #endregion
     }
 }

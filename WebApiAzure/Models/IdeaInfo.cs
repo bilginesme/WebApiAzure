@@ -8,7 +8,7 @@ namespace WebApiAzure.Models
     public class IdeaInfo
     {
         #region Private Members
-        public int ID { get; set; }
+        public long ID { get; set; }
         public string Title { get; set; }
         public DateTime CreationDate { get; set; }
         public int Order { get; set; }
