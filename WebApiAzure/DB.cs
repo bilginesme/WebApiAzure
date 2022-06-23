@@ -309,7 +309,8 @@ namespace WebApiAzure
         }
         public static string AddSegment(SegmentInfo segment)
         {
-            string strSQL = "INSERT Segments (BlockID, Title, Details, StartDate, EndDate, DueDate, HasDue, Size, StatusID) VALUES (" +
+            int xIconID = Blocks.GetBlockXIcon(segment.BlockID);
+            string strSQL = "INSERT Segments (BlockID, Title, Details, StartDate, EndDate, DueDate, HasDue, Size, StatusID, XIconID) VALUES (" +
                 segment.BlockID + "," +
                 "'" + DTC.Control.InputText(segment.Title, 255) + "'," +
                 "'" + DTC.Control.InputText(segment.Details, 255) + "'," +      
@@ -318,7 +319,8 @@ namespace WebApiAzure
                 DTC.ObtainGoodDT(DateTime.Today, true) + "," +
                 0 + "," +
                 2 + "," +
-                (int)DTC.StatusEnum.Running + 
+                (int)DTC.StatusEnum.Running + "," +
+                xIconID +
                 ")";
             RunNonQuery(strSQL);
 
@@ -1537,6 +1539,20 @@ namespace WebApiAzure
                     info = GetProject(dr);
 
                 return info;
+            }
+            public static int GetProjectXIcon(int projectID)
+            {
+                int xIConID = 0;
+
+                string strSQL = "SELECT * " +
+                     " FROM Projects " +
+                     " WHERE ProjectID = " + projectID;
+                DataTable dt = RunExecuteReader(strSQL);
+
+                if (dt.Rows.Count == 1)
+                    xIConID = Convert.ToInt32(dt.Rows[0]["XIconID"]);
+
+                return xIConID;
             }
             public static List<ProjectInfo> GetProjects()
             {
@@ -2927,6 +2943,20 @@ namespace WebApiAzure
 
                 return info;
             }
+            public static int GetBlockXIcon(long blockID)
+            {
+                int xIConID = 0;
+
+                string strSQL = "SELECT * " +
+                     " FROM Blocks " +
+                     " WHERE BlockID = " + blockID;
+                DataTable dt = RunExecuteReader(strSQL);
+
+                if (dt.Rows.Count == 1)
+                    xIConID = Convert.ToInt32(dt.Rows[0]["XIconID"]);
+
+                return xIConID;
+            }
             public static List<BlockInfo> GetBlocks(ProjectInfo project, bool sortByBlockName)
             {
                 return GetBlocks(project.ID, sortByBlockName);
@@ -3053,10 +3083,12 @@ namespace WebApiAzure
 
                 if (block.ID == 0)
                 {
+                    int xIconID = Projects.GetProjectXIcon(block.ProjectID);
+
                     SQL = "SET NOCOUNT ON INSERT INTO Blocks " +
                          " (Title, Details, ProjectID, ClusterID, " +
                          " HasDue, StartDate, EndDate, DueDate, StatusID," +
-                         " TheOrder, ProjectCode)" +
+                         " TheOrder, ProjectCode, XIconID)" +
                          " VALUES (" +
                          "'" + DTC.Control.InputText(block.Title, 255) + "'," +
                          "'" + DTC.Control.InputText(block.Details, 999) + "'," +
@@ -3068,7 +3100,8 @@ namespace WebApiAzure
                          DTC.Date.ObtainGoodDT(block.DueDate, true) + "," +
                          (int)block.Status + "," +
                          block.Order + "," +
-                         "'" + DTC.Control.InputText(block.ProjectCode, 50) + "'" +
+                         "'" + DTC.Control.InputText(block.ProjectCode, 50) + "'," +
+                         xIconID + 
                          ") SELECT SCOPE_IDENTITY() AS BlockID";
                     block.ID = RunExecuteScalar(SQL);
                 }
