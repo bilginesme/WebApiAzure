@@ -34,7 +34,28 @@ namespace WebApiAzure.Controllers
 
             return tasks;
         }
- 
+
+        [HttpGet]
+        [Route("api/Tasks/{parameter1}/{parameter2}/{parameter3}")]
+        public IEnumerable<TaskInfo> Get(int parameter1, string parameter2, string parameter3)
+        {
+            List<TaskInfo> tasks = new List<TaskInfo>();
+            
+            if(parameter1 == 1)
+            {
+                long blockID = Convert.ToInt32(parameter2);
+                bool isOnlyRunning = Convert.ToBoolean(parameter3);
+
+                DB.TaskStatusEnum taskStatus = DB.TaskStatusEnum.All;
+                if (isOnlyRunning)
+                    taskStatus = DB.TaskStatusEnum.Running;
+
+                tasks = DB.Tasks.GetTasksOfBlock(blockID, taskStatus);
+            }
+
+            return tasks;
+        }
+
         [HttpGet]
         [Route("api/Tasks/{id}")]
         public TaskInfo Get(long id)

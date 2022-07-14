@@ -35,7 +35,7 @@ namespace WebApiAzure.Models
         public bool IsFocus { get; set; }
         public int TemplateID { get; set; }
         public float ThresholdValue { get; set; }
-        public int ItemID { get; set; }
+        public long ItemID { get; set; }
         public int ProjectGroupID { get; set; }
         public int ProjectID { get; set; }
         public int SecondaryProjectGroupID { get; set; }

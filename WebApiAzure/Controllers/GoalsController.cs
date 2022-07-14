@@ -104,8 +104,9 @@ namespace WebApiAzure.Controllers
 
         [HttpPost]
         [Route("api/Goals/")]
-        public void Post([FromBody]string value)
+        public void Post([FromBody]GoalInfo value)
         {
+            DB.Goals.AddGoal(value);
         }
 
         [HttpPut]
@@ -117,7 +118,7 @@ namespace WebApiAzure.Controllers
         
         [HttpPut]
         [Route("api/Goals/{goalID}/{actionID}/{isCompleted}")]
-        public void Put(int goalID, int actionID, bool isCompleted, [FromBody]string value)
+        public void Put(int goalID, int actionID, bool isCompleted)
         {
             if(actionID == 1)
             {

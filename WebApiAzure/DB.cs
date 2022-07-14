@@ -652,7 +652,7 @@ namespace WebApiAzure
 
                 return GetTasks(strSQL);
             }
-            public static List<TaskInfo> GetTasks(BlockInfo block, TaskStatusEnum taskStatus)
+            public static List<TaskInfo> GetTasksOfBlock(long blockID, TaskStatusEnum taskStatus)
             {
                 string filterSQL = "";
 
@@ -664,16 +664,16 @@ namespace WebApiAzure
                     filterSQL = "";
 
                 string strSQL = "SELECT * FROM Tasks " +
-                    " WHERE BlockID = " + block.ID +
+                    " WHERE BlockID = " + blockID +
                     filterSQL +
                     " ORDER BY IsCompleted ASC, OrderGeneral ASC";
 
                 return GetTasks(strSQL);
             }
-            public static List<TaskInfo> GetTasks(SegmentInfo segment, TaskStatusEnum taskStatus)
+            public static List<TaskInfo> GetTasksOfSegment(long segmentID, TaskStatusEnum taskStatus)
             {
                 string filterSQL = "";
-
+                
                 if (taskStatus == TaskStatusEnum.Running)
                     filterSQL = " AND IsCompleted=0";
                 else if (taskStatus == TaskStatusEnum.Completed)
@@ -682,7 +682,7 @@ namespace WebApiAzure
                     filterSQL = "";
 
                 string strSQL = "SELECT * FROM Tasks " +
-                    " WHERE SegmentID = " + segment.ID +
+                    " WHERE SegmentID = " + segmentID +
                     filterSQL +
                     " ORDER BY IsCompleted ASC, OrderGeneral ASC";
 
@@ -1527,7 +1527,7 @@ namespace WebApiAzure
 
                 return data;
             }
-            public static ProjectInfo GetProject(int projectID)
+            public static ProjectInfo GetProject(long projectID)
             {
                 ProjectInfo info = new ProjectInfo();
 
@@ -3305,7 +3305,7 @@ namespace WebApiAzure
                          " StatusID = " + (int)segment.Status + "," +
                          " Size = " + (int)segment.Size + "," +
                          " ChapterID = " + segment.ChapterID + "," +
-                         " ProjectCode = '" + DTC.Control.InputText(segment.ProjectCode, 50) + "'," +
+                         " ProjectCode = '" + DTC.Control.InputText(segment.ProjectCode, 50) + "' " +
                          " WHERE SegmentID = " + segment.ID;
                     RunNonQuery(strSQL);
                 }
@@ -4623,6 +4623,61 @@ namespace WebApiAzure
 
                 return goal.ID;
             }
+            public static long AddSegmentGoal(long segmentID, DateTime theDateOfTheDay)
+            {
+                DayInfo day = Days.GetDay(theDateOfTheDay, true);
+                SegmentInfo segment = Segments.GetSegment(segmentID);
+                BlockInfo block = Blocks.GetBlock(segment.BlockID);
+
+                if(day != null && segment != null && block != null)
+                {
+                    GoalInfo goal = new GoalInfo()
+                    {
+                        GroupID = 2,     // TODO: Get it from DB or enum
+                        GoalType = GoalTypeInfo.TypeEnum.Segment,
+                        Definition = segment.Title,
+                        Range = DTC.RangeEnum.Day,
+                        Nature = GoalInfo.NatureEnum.Standart,
+                        StartDate = day.StartInstance,
+                        EndDate = day.EndInstance,
+                        Size = DTC.SizeEnum.Medium,
+                        Status = DTC.StatusEnum.Running,
+                        OwnerID = day.DayID,
+                        StartingValue = 0,
+                        GoalValue = 100,
+                        ItemID = segment.ID,
+                        HoursPerUnit = 1,
+                        PrimaryProjectID = block.ProjectID
+                    };
+                    return AddGoal(goal);
+                }
+                else
+                {
+                    return 0;
+                }
+            }
+            public static bool CompleteSegmentGoal(long goalID)
+            {
+                GoalInfo goal = DB.Goals.GetGoal(goalID, true);
+                SegmentInfo segment = DB.GetSegment(goal.ItemID);
+
+                if(goal != null && segment != null)
+                {
+                    goal.Status = DTC.StatusEnum.Success;
+                    goal.EndDate = DateTime.Today;
+                    DB.Goals.UpdateGoal(goal);
+
+                    segment.Status = DTC.StatusEnum.Success;
+                    segment.EndDate = DateTime.Today;
+                    DB.Segments.AddUpdateSegment(segment);
+
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
             public static void UpdateGoal(GoalInfo goal)
             {
                 string SQL = "UPDATE Goals SET " +
@@ -4742,6 +4797,8 @@ namespace WebApiAzure
                 string strIsOnlyRunninOnesBlock = string.Empty;
                 string strIsOnlyRunninOnesSegment = string.Empty;
 
+                ProjectInfo project = Projects.GetProject(projectID);
+
                 if(isOnlyRunningOnes)
                 {
                     strIsOnlyRunninOnesProject = " AND StatusID =" + (int)DTC.StatusEnum.Running;
@@ -4759,12 +4816,33 @@ namespace WebApiAzure
                 foreach (GoalInfo g in GetGoals(SQL, getPresentValues))
                     data.Add(g);
 
+                SQL = "SELECT * " +
+                    " FROM Goals " +
+                    " WHERE ProjectGroupID = " + project.ProjectGroupID +
+                    strIsOnlyRunninOnesProject +
+                    " AND TemplateID = 0" +
+                    " ORDER BY DateDue";
+                foreach (GoalInfo g in GetGoals(SQL, getPresentValues))
+                    data.Add(g);
+
+                SQL = "SELECT * " +
+                    " FROM Goals " +
+                    " WHERE (PrimaryProjectID = " + projectID + " OR " +
+                    " SecondaryProjectID = " + projectID + " OR " +
+                    " TertiaryProjectID = " + projectID + ") " + 
+                    " AND GoalTypeID <> " + (int)GoalTypeInfo.TypeEnum.Segment +
+                    " AND GoalTypeID <> " + (int)GoalTypeInfo.TypeEnum.Block +
+                    strIsOnlyRunninOnesProject +
+                    " AND TemplateID = 0" +
+                    " ORDER BY DateDue";
+                foreach (GoalInfo g in GetGoals(SQL, getPresentValues))
+                    data.Add(g);
+
                 SQL = "SELECT Goals.*" +
                     " FROM Goals " +
                     " INNER JOIN Blocks ON Goals.ItemID = Blocks.BlockID" +
                     " WHERE Blocks.ProjectID = " + projectID +
-                    strIsOnlyRunninOnesBlock +
-                    " AND Goals.StatusID = " + (int)DTC.StatusEnum.Running;
+                    strIsOnlyRunninOnesBlock;
                 foreach (GoalInfo g in GetGoals(SQL, getPresentValues))
                     data.Add(g);
 
@@ -4775,6 +4853,45 @@ namespace WebApiAzure
                     " WHERE Goals.GoalTypeID = " + (int)GoalTypeInfo.TypeEnum.Segment +
                     strIsOnlyRunninOnesSegment +
                     " AND Blocks.ProjectID = " + projectID;
+                foreach (GoalInfo g in GetGoals(SQL, getPresentValues))
+                    data.Add(g);
+
+                return data;
+            }
+            public static List<GoalInfo> GetGoalsOfSegments(int projectID, bool isOnlyRunningOnes, bool getPresentValues)
+            {
+                List<GoalInfo> data = new List<GoalInfo>();
+                string strIsOnlyRunningOnes = string.Empty;
+
+                if (isOnlyRunningOnes)
+                    strIsOnlyRunningOnes = " AND Goals.StatusID = " + (int)DTC.StatusEnum.Running;
+ 
+                string SQL = "SELECT Goals.*" +
+                    " FROM  Segments " +
+                    " INNER JOIN Blocks ON Segments.BlockID = Blocks.BlockID " +
+                    " INNER JOIN Goals ON Segments.SegmentID = Goals.ItemID" +
+                    " WHERE Goals.GoalTypeID = " + (int)GoalTypeInfo.TypeEnum.Segment +
+                    strIsOnlyRunningOnes +
+                    " AND Blocks.ProjectID = " + projectID;
+                foreach (GoalInfo g in GetGoals(SQL, getPresentValues))
+                    data.Add(g);
+
+                return data;
+            }
+            public static List<GoalInfo> GetSegmentGoalsOfBlock(int blockID, bool isOnlyRunningOnes, bool getPresentValues)
+            {
+                List<GoalInfo> data = new List<GoalInfo>();
+                string strIsOnlyRunningOnes = string.Empty;
+
+                if (isOnlyRunningOnes)
+                    strIsOnlyRunningOnes = " AND Goals.StatusID = " + (int)DTC.StatusEnum.Running;
+
+                string SQL = "SELECT Goals.* " +
+                    " FROM  Segments " +
+                    " INNER JOIN Goals ON Segments.SegmentID = Goals.ItemID" +
+                    " WHERE Goals.GoalTypeID = " + (int)GoalTypeInfo.TypeEnum.Segment +
+                    strIsOnlyRunningOnes +
+                    " AND Segments.BlockID = " + blockID;
                 foreach (GoalInfo g in GetGoals(SQL, getPresentValues))
                     data.Add(g);
 
@@ -5724,7 +5841,7 @@ namespace WebApiAzure
 
                 return info;
             }
-            public static BookInfo GetBook(int bookID)
+            public static BookInfo GetBook(long bookID)
             {
                 BookInfo info = new BookInfo();
 
@@ -5806,7 +5923,7 @@ namespace WebApiAzure
 
                 return result;
             }
-            public static float GetCurrentValue(int bookID)
+            public static float GetCurrentValue(long bookID)
             {
                 float result = 0;
                 BookInfo book = GetBook(bookID);

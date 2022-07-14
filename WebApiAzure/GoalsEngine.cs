@@ -269,7 +269,7 @@ namespace WebApiAzure
         public ProjectInfo GetProject(GoalInfo goal)
         {
             ProjectInfo project = new ProjectInfo();
-            int projectID = 0;
+            long projectID = 0;
             if (goal.GoalType == GoalTypeInfo.TypeEnum.ProjectGoal)
             {
                 projectID = goal.ItemID;
