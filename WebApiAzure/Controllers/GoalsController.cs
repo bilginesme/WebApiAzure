@@ -126,7 +126,11 @@ namespace WebApiAzure.Controllers
             }
             else if (actionID == 2)
             {
-                DB.Goals.PostponeTotheNextDay(goalID);
+                DB.Goals.PostponeToTheNextDay(goalID);
+            }
+            else if (actionID == 3)
+            {
+                DB.Goals.BringToThePreviousDay(goalID);
             }
         }
 

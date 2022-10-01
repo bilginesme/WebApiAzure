@@ -52,6 +52,12 @@ namespace WebApiAzure.Controllers
 
                 tasks = DB.Tasks.GetTasksOfBlock(blockID, taskStatus);
             }
+            else if (parameter1 == 2)
+            {
+                DateTime dateStart = DTC.Date.GetDateFromString(parameter2, DTC.Date.DateStyleEnum.Universal);
+                DateTime dateEnd = DTC.Date.GetDateFromString(parameter3, DTC.Date.DateStyleEnum.Universal);
+                tasks = DB.Tasks.GetTasks(dateStart, dateEnd, DB.TaskStatusEnum.All);
+            }
 
             return tasks;
         }

@@ -87,6 +87,19 @@ namespace WebApiAzure
 
             return data;
         }
+        public static List<BlockInfo> GetBlocksOnlyRunning(int projectID)
+        {
+            List<BlockInfo> data = new List<BlockInfo>();
+
+            string strSQL = "SELECT * FROM Blocks " +
+                " WHERE ProjectID = " + projectID +
+                " AND StatusID = 1";
+            DataTable dt = RunExecuteReader(strSQL);
+            foreach (DataRow dr in dt.Rows)
+                data.Add(GetBlock(dr));
+
+            return data;
+        }
         public static BlockInfo GetBlock(long blockID)
         {
             string strSQL = "SELECT * " +
@@ -4663,12 +4676,18 @@ namespace WebApiAzure
 
                 if(goal != null && segment != null)
                 {
-                    goal.Status = DTC.StatusEnum.Success;
                     goal.EndDate = DateTime.Today;
+
+                    List<TaskInfo> tasks = Tasks.GetTasksOfSegment(segment.ID, TaskStatusEnum.Completed);
+                    if(tasks !=null && tasks.Count > 0)
+                        goal.EndDate = tasks.First().TaskDate;
+
+                    goal.Status = DTC.StatusEnum.Success;
+                    
                     DB.Goals.UpdateGoal(goal);
 
                     segment.Status = DTC.StatusEnum.Success;
-                    segment.EndDate = DateTime.Today;
+                    segment.EndDate = goal.EndDate;
                     DB.Segments.AddUpdateSegment(segment);
 
                     return true;
@@ -5555,7 +5574,7 @@ namespace WebApiAzure
                     " WHERE GoalID = " + goalID;
                 RunNonQuery(strSQL);
             }
-            public static void PostponeTotheNextDay(long goalID)
+            public static void PostponeToTheNextDay(long goalID)
             {
                 GoalInfo goal = GetGoal(goalID, false);
                 DateTime nextDayDate = goal.StartDate.AddDays(1);
@@ -5565,6 +5584,19 @@ namespace WebApiAzure
                 goal.StartDate = nextDayDate;
                 goal.EndDate = nextDayDate;
                 goal.DueDate = nextDayDate;
+
+                UpdateGoal(goal);
+            }
+            public static void BringToThePreviousDay(long goalID)
+            {
+                GoalInfo goal = GetGoal(goalID, false);
+                DateTime prevDayDate = goal.StartDate.AddDays(-1);
+                DayInfo pevDay = DB.Days.GetDay(prevDayDate, true);
+
+                goal.OwnerID = pevDay.DayID;
+                goal.StartDate = prevDayDate;
+                goal.EndDate = prevDayDate;
+                goal.DueDate = prevDayDate;
 
                 UpdateGoal(goal);
             }

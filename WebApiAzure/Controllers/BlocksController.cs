@@ -13,7 +13,12 @@ namespace WebApiAzure.Controllers
         [Route("api/Blocks/{projectID}/{isOnlyRunning}")]
         public IEnumerable<BlockInfo> Get(int projectID, bool isOnlyRunning)
         {
-            List<BlockInfo> blocks = DB.GetBlocks(projectID);
+            List<BlockInfo> blocks = new List<BlockInfo>();
+
+            if (isOnlyRunning)
+                blocks = DB.GetBlocksOnlyRunning(projectID);
+            else
+                blocks = DB.GetBlocks(projectID);
 
             return blocks;
         }

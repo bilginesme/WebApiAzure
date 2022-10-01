@@ -18,6 +18,17 @@ namespace WebApiAzure.Controllers
             return segments;
         }
 
+        [Route("api/Segments/{projectID}/{blockID}/{isOnlyRunning}")]
+        public IEnumerable<SegmentInfo> Get(int projectID, long blockID, bool isOnlyRunning)
+        {
+            List<SegmentInfo> segments = DB.Segments.GetSegments(projectID);
+
+            if (isOnlyRunning)
+                segments = segments.FindAll(q => q.Status == DTC.StatusEnum.Running);
+
+            return segments;
+        }
+
         [HttpGet]
         [Route("api/Segments/{segmentID}")]
         public SegmentInfo Get(long segmentID)
