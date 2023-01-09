@@ -295,6 +295,7 @@
     <Compile Include="Models\AccountViewModels.cs" />
     <Compile Include="Models\BlockEnhancedInfo.cs" />
     <Compile Include="Models\BlockPerfInfo.cs" />
+    <Compile Include="Models\ProjectMonitorItemInfo.cs" />
     <Compile Include="Models\ReportItemInfo.cs" />
     <Compile Include="Models\GenericItemInfo.cs" />
     <Compile Include="Models\SubProjectInfo.cs" />

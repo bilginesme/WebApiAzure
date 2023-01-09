@@ -2579,6 +2579,33 @@ namespace WebApiAzure
 
                 AddProjectLog(projectID, DateTime.Today, completionRate);
             }
+
+            public static List<ProjectMonitorItemInfo> GetProjectsMonitorValues()
+            {
+                List<ProjectMonitorItemInfo> data = new List<ProjectMonitorItemInfo>();
+                DateTime dtStart = new DateTime(2023, 1, 1);
+                DateTime dtEnd = new DateTime(2023, 1, 31);
+
+                string strSQL = "SELECT Projects.ProjectID, Tasks.TaskDate, SUM(Tasks.RealTime) AS NUMMINUTES" + 
+                    " FROM Projects INNER JOIN Tasks ON Projects.ProjectID = Tasks.ProjectID" +
+                    " WHERE (Projects.ProjectID = 521) " +
+                    " AND Tasks.TaskDate >= " + DTC.Date.ObtainGoodDT(dtStart, true) + "" +
+                    " AND Tasks.TaskDate <= " + DTC.Date.ObtainGoodDT(dtEnd, true) + "" +
+                    " GROUP BY Projects.ProjectID, Tasks.TaskDate " +
+                    " ORDER BY Tasks.TaskDate";
+
+                DataTable dt = RunExecuteReader(strSQL);
+                foreach (DataRow dr in dt.Rows)
+                {
+                    int numMinutes = Convert.ToInt16(dr["NUMMINUTES"]);
+                    int projectID = Convert.ToInt32(dr["ProjectID"]);
+                    DateTime theDate = Convert.ToDateTime(dr["TaskDate"]);
+
+                    data.Add(new ProjectMonitorItemInfo() { NumMinutes = numMinutes, ProjectID = projectID, TheDate = theDate });
+                }
+
+                return data;
+            }
         }
 
         public class Clusters
