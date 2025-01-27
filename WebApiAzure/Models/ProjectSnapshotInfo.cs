@@ -13,6 +13,8 @@ namespace WebApiAzure.Models
         public string ProjectCode { get; set; }
         public string ProjectName { get; set; }
         public string ProjectImgName { get; set; }
+        public string ProjectImageThumb { get; set; }
+        public string ProjectColor { get; set; }
         public string ProjectGroupCode { get; set; }
         public float RealTime { get; set; }
         public float EternalTotalTime { get; set; }

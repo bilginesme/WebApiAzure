@@ -282,6 +282,6 @@ C:\inetpub\wwwroot\WebApiAzure\WebApiAzure\bin\Microsoft.Owin.Security.Microsoft
 C:\inetpub\wwwroot\WebApiAzure\WebApiAzure\bin\System.Web.Http.Owin.xml
 C:\inetpub\wwwroot\WebApiAzure\WebApiAzure\obj\Debug\WebApiAzure.csproj.AssemblyReference.cache
 C:\inetpub\wwwroot\WebApiAzure\WebApiAzure\obj\Debug\WebApiAzure.csproj.CoreCompileInputs.cache
-C:\inetpub\wwwroot\WebApiAzure\WebApiAzure\obj\Debug\WebApiAzure.csproj.CopyComplete
 C:\inetpub\wwwroot\WebApiAzure\WebApiAzure\obj\Debug\WebApiAzure.dll
 C:\inetpub\wwwroot\WebApiAzure\WebApiAzure\obj\Debug\WebApiAzure.pdb
+C:\inetpub\wwwroot\WebApiAzure\WebApiAzure\obj\Debug\WebApiAz.574FA088.Up2Date

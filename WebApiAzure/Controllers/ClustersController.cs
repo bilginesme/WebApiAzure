@@ -21,7 +21,7 @@ namespace WebApiAzure.Controllers
         [Route("api/Clusters/{subProjectID}/{computeAllParameters}/{removeThisParameter}")]
         public IEnumerable<ClusterInfo> Get(int subProjectID, bool computeAllParameters, int removeThisParameter)
         {
-            List<ClusterInfo> clusters = DB.Clusters.GetClusters(subProjectID, true);
+            List<ClusterInfo> clusters = DB.Clusters.GetClustersOfSubProject(subProjectID, true);
 
             return clusters;
         }

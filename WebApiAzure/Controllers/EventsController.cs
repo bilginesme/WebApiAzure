@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.Tracing;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Reflection;
 using System.Web.Http;
 using WebApiAzure.Models;
 
@@ -24,14 +26,34 @@ namespace WebApiAzure.Controllers
             DateTime dtStart = DateTime.Today;
             DateTime dtEnd = DateTime.Today;
 
+            List<NewsInfo> events = new List<NewsInfo>();
+
             if (strDateStart != string.Empty)
                 dtStart = DTC.Date.GetDateFromString(strDateStart, DTC.Date.DateStyleEnum.Universal);
 
             if (strDateEnd != string.Empty)
                 dtEnd = DTC.Date.GetDateFromString(strDateEnd, DTC.Date.DateStyleEnum.Universal);
 
-            return DB.News.GetNews(dtStart, dtEnd);
+            events = DB.News.GetNews(dtStart, dtEnd);
+
+            return events;
         }
+
+        [HttpGet]
+        [Route("api/Events/{param1}/{param2}/{param3}")]
+        public IEnumerable<NewsInfo> Get(string param1, string param2, string param3)
+        {
+            List<NewsInfo> events = new List<NewsInfo>();
+ 
+            if (param1 == "1")
+            {
+                DateTime theDate = DTC.Date.GetDateFromString(param2, DTC.Date.DateStyleEnum.Universal);
+                events = DB.News.GetTheDayInHistory(theDate);
+            }
+
+            return events;
+        }
+
 
         [HttpGet]
         [Route("api/Events/{range}/{parameter}/{strDateStart}/{strDateEnd}")]

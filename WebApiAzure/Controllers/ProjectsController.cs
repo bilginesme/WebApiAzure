@@ -49,6 +49,20 @@ namespace WebApiAzure.Controllers
         }
 
         [HttpGet]
+        [Route("api/Projects/{param1}/{param2}/{param3}/{param4}")]
+        public IEnumerable<ProjectInfo> Get(string param1, string param2, string param3, string param4)
+        {
+            List<ProjectInfo> data = new List<ProjectInfo>();
+             
+            if(param1 == "ACTIONABLE_PROJECTS")
+            {
+                data = DB.Projects.GetActionableProjects();
+            }
+
+            return data;
+        }
+
+        [HttpGet]
         [Route("api/Projects/{projectGroupID}/{statusID}/{strDateStart}/{strDateEnd}/{actionID}")]
         public IEnumerable<ProjectInfo> Get(int projectGroupID, int statusID, string strDateStart, string strDateEnd, int actionID)
         {
@@ -58,7 +72,7 @@ namespace WebApiAzure.Controllers
             DateTime dtEnd = DTC.Date.GetDateFromString(strDateEnd, DTC.Date.DateStyleEnum.Universal);
 
             if (actionID == 1)
-                data = DB.Projects.GetProjectsRelatedToTasks(dtStart);
+                data = DB.Projects.GetProjectsRelatedToTasks(dtStart, dtEnd);
 
             return data;
         }
@@ -77,11 +91,18 @@ namespace WebApiAzure.Controllers
             DB.Projects.AddUpdateProject(project);
         }
 
+        [HttpPut]
+        [Route("api/Projects/{projectID}/{latestBlockID}")]
+        public bool Put(long projectID, long latestBlockID, [FromBody] ProjectInfo project)
+        {
+            return DB.Projects.UpdateLatestBlockD(projectID, latestBlockID);
+        }
+
         [HttpDelete]
         [Route("api/Projects/{projectID}")]
-        public void Delete(int projectID)
+        public string Delete(int projectID)
         {
-            
+            return DB.Projects.DeleteProject(projectID);
         }
     }
 }

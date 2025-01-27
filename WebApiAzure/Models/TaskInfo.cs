@@ -12,8 +12,10 @@ namespace WebApiAzure.Models
         #region Members
         public long ID { get; set; }
         public string Title { get; set; }
-        public int ProjectID { get; set; }
         public int ProjectGroupID { get; set; }
+        public int ProjectID { get; set; }
+        public int SubProjectID { get; set; }
+        public int ClusterID { get; set; }
         public long BlockID { get; set; }
         public long SegmentID { get; set; }
         public bool IsCompleted { get; set; }
@@ -42,8 +44,10 @@ namespace WebApiAzure.Models
             TaskDate = DateTime.Today;
             StartDate = DateTime.Today;
             EndDate = DateTime.Today;
-            ProjectID = 0;
             ProjectGroupID = 0;
+            ProjectID = 0;
+            SubProjectID = 0;
+            ClusterID = 0;
             BlockID = 0;
             SegmentID = 0;
             IsCompleted = false;

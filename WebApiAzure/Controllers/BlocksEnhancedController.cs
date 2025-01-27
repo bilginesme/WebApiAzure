@@ -8,7 +8,7 @@ using WebApiAzure.Models;
 
 namespace WebApiAzure.Controllers
 {
-    public class BlocksEnhacedController : ApiController
+    public class BlocksEnhancedController : ApiController
     {
         [Route("api/BlocksEnhanced/{projectID}/{isOnlyRunning}")]
         public IEnumerable<BlockEnhancedInfo> Get(int projectID, bool isOnlyRunning)

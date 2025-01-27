@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Web.Http;
+using System.Web.UI.WebControls;
 using WebApiAzure.Models;
 
 namespace WebApiAzure.Controllers
@@ -58,6 +59,12 @@ namespace WebApiAzure.Controllers
                 DateTime dateEnd = DTC.Date.GetDateFromString(parameter3, DTC.Date.DateStyleEnum.Universal);
                 tasks = DB.Tasks.GetTasks(dateStart, dateEnd, DB.TaskStatusEnum.All);
             }
+            else if (parameter1 == 3)
+            {
+                int taskTemplateID = Convert.ToInt32(parameter2);
+                DateTime theDate = DTC.Date.GetDateFromString(parameter3, DTC.Date.DateStyleEnum.Universal);
+                tasks = DB.Tasks.CreateTasksWithTemplate(taskTemplateID, theDate);
+            }
 
             return tasks;
         }
@@ -90,16 +97,46 @@ namespace WebApiAzure.Controllers
 
         [HttpPut]
         [Route("api/Tasks/{taskID}/{order}")]
-        public void Put(long taskID, int order, [FromBody]TaskInfo task)
+        public long Put(long taskID, int order, [FromBody]TaskInfo task)
         {
-            DB.Tasks.UpdateTaskOrder(taskID, order);
+            return DB.Tasks.UpdateTaskOrder(taskID, order);
+        }
+
+        [HttpPut]
+        [Route("api/Tasks/{param1}/{strNewDate}/{strTasks}")]
+        public bool Put(int param1, string strNewDate, string strTasks, [FromBody] TaskInfo task)
+        {
+            bool result = false;
+
+            if (param1 == 1)
+            {
+                DateTime newDate = DTC.Date.GetDateFromString(strNewDate, DTC.Date.DateStyleEnum.Universal);
+                result =  DB.Tasks.PostponeTasks(strTasks, newDate);
+            }
+            else if (param1 == 2)
+            {
+                result = DB.Tasks.CompleteTasks(strTasks);
+            }
+            else if (param1 == 3)
+            {
+                result = DB.Tasks.CloneTasks(strTasks);
+            }
+
+            return result;
         }
 
         [HttpDelete]
         [Route("api/Tasks/{taskID}")]
-        public void Delete(long taskID)
+        public bool Delete(long taskID)
         {
-            DB.Tasks.DeleteTask(taskID);
+            return DB.Tasks.DeleteTask(taskID);
+        }
+
+        [HttpDelete]
+        [Route("api/Tasks/{param1}/{strTasks}")]
+        public bool Delete(string param1, string strTasks)
+        {
+            return DB.Tasks.DeleteTasks(strTasks);
         }
     }
 }

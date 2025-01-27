@@ -17,12 +17,7 @@ namespace WebApiAzure.Controllers
         }
 
 
-        // GET: api/GoalGroups/5
-        public string Get(int id)
-        {
-            return "value";
-        }
-
+    
         [HttpGet]
         [Route("api/Owner/{rangeID}/{strDate}")]
         public OwnerInfo Get(int rangeID, string strdate)
@@ -40,8 +35,16 @@ namespace WebApiAzure.Controllers
         {
             DateTime theDate = DTC.Date.GetDateFromString(strdate, DTC.Date.DateStyleEnum.Universal);
             OwnerInfo owner = new OwnerInfo();
+            DTC.RangeEnum range = (DTC.RangeEnum)rangeID;
 
-            owner = DB.Owner.GetPrevNextOwner(prevOrNext, (DTC.RangeEnum)rangeID, theDate);
+            if (prevOrNext == 0)
+            {
+                owner = DB.Owner.GetOwner(range, DateTime.Now);
+            }
+            else
+            {
+                owner = DB.Owner.GetPrevNextOwner(prevOrNext, range, theDate);
+            }
 
             return owner;
         }

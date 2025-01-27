@@ -21,14 +21,45 @@ namespace WebApiAzure.Controllers
         [Route("api/Goals/{ownerID}/{param1}/{param2}/{param3}")]
         public IEnumerable<GoalInfo> Get(long ownerID, string param1, string param2, string param3)
         {
-            OwnerInfo owner = DB.Owner.GetOwner(DTC.RangeEnum.Week, DateTime.Today);
-            List<GoalInfo> goals = DB.Goals.GetGoals(owner, true);
-                                                                           
+            OwnerInfo owner = null;
+            List<GoalInfo> goals = new List<GoalInfo>();
+
+            if (param1.ToUpper() == "GOALSOFGROUP")
+            {
+                int goalGroupID = Convert.ToInt32(param2);
+                DTC.RangeEnum range = (DTC.RangeEnum)Convert.ToInt16(param3);
+                owner = DB.Owner.GetOwner(range, DateTime.Today);
+                goals = DB.Goals.GetGoals(owner, true).FindAll(q => q.GroupID == goalGroupID);
+            }
+            else
+            {
+                owner = DB.Owner.GetOwner(DTC.RangeEnum.Week, DateTime.Today);
+                goals = DB.Goals.GetGoals(owner, true);
+            }
+
+           
+            DayInfo today = DB.Days.GetDay(DateTime.Today, true);
+            int standartOrProjected = 1;
+            foreach (GoalInfo goal in goals)
+            {
+                if (standartOrProjected == 1)
+                {
+                    goal.PresentPercentage = goal.GetPresentPercentage();
+                    goal.DesiredValue = goal.GoalValue;
+                }
+                if (standartOrProjected == 2)
+                {
+                    goal.PresentPercentage = goal.GetPerformance(false, today);     // What does it mean? isFull
+                    goal.DesiredValue = goal.GetDesiredValue(today);
+                }
+            }
+
             goals = goals.OrderByDescending(i => i.PresentPercentage).ToList();
+
 
             return goals;
         }
-
+         
         [HttpGet]
         [Route("api/Goals/{rangeID}/{getPresentValues}/{standartOrProjected}")]
         public IEnumerable<GoalInfo> Get(int rangeID, bool getPresentValues, int standartOrProjected)
@@ -74,6 +105,55 @@ namespace WebApiAzure.Controllers
                 }
             }
 
+            return goals;
+        }
+
+        [HttpGet]
+        [Route("api/Goals/{rangeID}/{getPresentValues}/{standartOrProjected}/{strDate}/{reserved}")]
+        public IEnumerable<GoalInfo> Get(int rangeID, bool getPresentValues, int standartOrProjected, string strDate, string reserved)
+        {
+            List<GoalInfo> goals = new List<GoalInfo>();
+            DTC.RangeEnum range = (DTC.RangeEnum)rangeID;
+
+            DateTime dtStart = DTC.Date.GetDateFromString(strDate, DTC.Date.DateStyleEnum.Universal);
+            OwnerInfo owner = DB.Owner.GetOwner(range, dtStart);
+
+            goals = DB.Goals.GetGoals(owner, true);
+
+            DayInfo today = DB.Days.GetDay(DateTime.Today, true);
+
+            foreach (GoalInfo goal in goals)
+            {
+                if (standartOrProjected == 1)
+                {
+                    goal.PresentPercentage = goal.GetPresentPercentage();
+                    goal.DesiredValue = goal.GoalValue;
+                }
+                if (standartOrProjected == 2)
+                {
+                    goal.PresentPercentage = goal.GetPerformance(false, today);     // What does it mean? isFull
+                    goal.DesiredValue = goal.GetDesiredValue(today);
+                }
+            }
+
+            goals = goals.OrderByDescending(i => i.Status).OrderByDescending(i => i.PresentPercentage).ToList();
+
+            if (getPresentValues)
+            {
+                List<GoalGroupInfo> goalGroups = DB.Goals.GetGoalGroups();
+                GoalsEngine goalEngine = new GoalsEngine(goals, goalGroups, today);
+                GoalsEngine.PerformanceNatureEnum nature = GoalsEngine.PerformanceNatureEnum.Normal;
+                if (standartOrProjected == 1)
+                    nature = GoalsEngine.PerformanceNatureEnum.Worst;
+                else if (standartOrProjected == 1)
+                    nature = GoalsEngine.PerformanceNatureEnum.Normal;
+
+                foreach (GoalInfo goal in goals)
+                {
+                    goal.Contribution = goalEngine.GetGoalContributionWeighted(goal, false, nature);
+                    goal.ContributionMax = goalEngine.GetGoalContributionWeighted(goal, true, nature);
+                }
+            }
 
             return goals;
         }
@@ -115,7 +195,27 @@ namespace WebApiAzure.Controllers
         {
 
         }
-        
+
+        [HttpPut]
+        [Route("api/Goals/{param1}/{param2}")]
+        public bool Put(string param1, string param2, [FromBody] string value)
+        {
+            bool result = false;
+
+            if (param1.ToUpper() == "COMPLETE")
+            {
+                int goalID = Convert.ToInt32(param2);
+                result = DB.Goals.CompleteGoal(goalID);
+            }
+            else if (param1.ToUpper() == "REFRESH_ALL")
+            {
+                DateTime theDate = DTC.Date.GetDateFromString(param2, DTC.Date.DateStyleEnum.Universal);
+                result = DTC.Goals.RefreshAll(theDate);
+            }
+
+            return result;
+        }
+
         [HttpPut]
         [Route("api/Goals/{goalID}/{actionID}/{isCompleted}")]
         public void Put(int goalID, int actionID, bool isCompleted)
@@ -126,18 +226,19 @@ namespace WebApiAzure.Controllers
             }
             else if (actionID == 2)
             {
-                DB.Goals.PostponeToTheNextDay(goalID);
+                DB.Goals.MoveToNextPrevDay(goalID, 1);
             }
             else if (actionID == 3)
             {
-                DB.Goals.BringToThePreviousDay(goalID);
+                DB.Goals.MoveToNextPrevDay(goalID, -1);
             }
         }
 
         [HttpDelete]
         [Route("api/Goals/{goalID}")]
-        public void Delete(int goalID)
+        public bool Delete(int goalID)
         {
+            return DB.Goals.DeleteGoal(goalID);
         }
     }
 }

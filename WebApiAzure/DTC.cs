@@ -20,6 +20,11 @@ namespace WebApiAzure
             Standart = 1, Weighted = 2
         }
 
+        public static List<string> SplitInto(string str, char ch)
+        {
+            string[] words = str.Split(ch);
+            return words.ToList();
+        }
 
         public static bool IsNumeric(object input)
         {
@@ -928,6 +933,305 @@ namespace WebApiAzure
 
 
                 return result;
+            }
+        }
+
+        public class Goals
+        {
+            public enum PerformanceNatureEnum
+            {
+                Normal, Worst, Best
+            }
+            public static bool RefreshAll(DateTime date)
+            {
+                bool result = true;
+
+                OwnerInfo owner;
+                DayInfo day = DB.Days.GetDay(date, true);
+
+                owner = DB.Owner.GetOwner(DTC.RangeEnum.Day, date);
+                List<GoalInfo> dailyGoals = DB.Goals.GetGoals(owner, true);
+                day.Performance = Convert.ToInt16(DTC.Goals.GetPerformance(dailyGoals, DTC.Goals.PerformanceNatureEnum.Normal, day) * 100);
+
+                WeekInfo week = DB.Weeks.GetWeek(date, true);
+                owner = DB.Owner.GetOwner(DTC.RangeEnum.Week, date);
+                List<GoalInfo> weeklyGoals = DB.Goals.GetGoals(owner, true);
+                week.Performance = Convert.ToInt16(DTC.Goals.GetPerformance(weeklyGoals, DTC.Goals.PerformanceNatureEnum.Normal, day) * 100);
+                day.PerfWeek = week.Performance;
+                DB.Weeks.AddUpdateWeek(week);
+
+                MonthInfo month = DB.Months.GetMonth(date, true);
+                owner = DB.Owner.GetOwner(DTC.RangeEnum.Month, date);
+                List<GoalInfo> monthlyGoals = DB.Goals.GetGoals(owner, true);
+                month.Performance = Convert.ToInt16(DTC.Goals.GetPerformance(monthlyGoals, DTC.Goals.PerformanceNatureEnum.Normal, day) * 100);
+                day.PerfMonth = month.Performance;
+                DB.Months.AddUpdateMonth(month);
+
+                QuarterInfo quarter = DB.Quarters.GetQuarter(date, true);
+                owner = DB.Owner.GetOwner(DTC.RangeEnum.Quarter, date);
+                List<GoalInfo> quarterlyGoals = DB.Goals.GetGoals(owner, true);
+                quarter.Performance = Convert.ToInt16(DTC.Goals.GetPerformance(quarterlyGoals, DTC.Goals.PerformanceNatureEnum.Normal, day) * 100);
+                day.PerfQuarter = quarter.Performance;
+                DB.Quarters.AddUpdateQuarter(quarter);
+
+                YearInfo year = DB.Years.GetYear(date, true);
+                owner = DB.Owner.GetOwner(DTC.RangeEnum.Year, date);
+                List<GoalInfo> yearlyGoals = DB.Goals.GetGoals(owner, true);
+                year.Performance = Convert.ToInt16(DTC.Goals.GetPerformance(yearlyGoals, DTC.Goals.PerformanceNatureEnum.Normal, day) * 100);
+                day.PerfYear = year.Performance;
+                DB.Years.AddUpdateYear(year);
+
+                // we update day on purpose,
+                // day has weekly, monthly, quarterly and yearly perf values
+                DB.Days.AddUpdateDay(day);
+
+                return result;
+            }
+            public static float GetPerformance(List<GoalInfo> goals, PerformanceNatureEnum perfNature, DayInfo day)
+            {
+                float result = 0;
+
+                List<GoalGroupInfo> groups = GetGoalGroups(goals);
+                foreach (GoalGroupInfo gg in groups)
+                {
+                    float weight = GetGroupWeight(gg.ID, groups);
+                    float contribution = GetGroupContributionForAll(gg.ID, goals, false, perfNature, day);
+                    float contrMax = GetGroupContributionForAll(gg.ID, goals, true, perfNature, day);
+                    float grade = 0;
+                    if (contrMax > 0) grade = contribution / contrMax;
+
+                    result += grade * weight;
+                }
+
+                return result;
+            }
+            public static List<GoalGroupInfo> GetGoalGroups(List<GoalInfo> goals)
+            {
+                List<GoalGroupInfo> groups = new List<GoalGroupInfo>();
+                List<GoalGroupInfo> groupsAll = DB.Goals.GetGoalGroups();
+
+                foreach (GoalInfo g in goals)
+                {
+                    GoalGroupInfo goalGroup = groupsAll.Find(q => q.ID == g.GroupID);
+                    if(goalGroup != null)
+                    {
+                        if (!groups.Exists(q => q.ID == g.GroupID))
+                        {
+                            groups.Add(goalGroup);
+                        }
+                    }
+                }
+
+                groups = groups.OrderBy(q => q.Order).ToList();
+
+                return groups;
+            }
+            public static float GetGroupWeight(int groupID, List<GoalInfo> goals)
+            {
+                List<GoalGroupInfo> groups = GetGoalGroups(goals);
+                return GetGroupWeight(groupID, groups);
+            }
+            public static float GetGroupWeight(int groupID, List<GoalGroupInfo> groups)
+            {
+                float totalSize = 0;
+                foreach (GoalGroupInfo gg in groups)
+                {
+                    totalSize += Convert.ToSingle(gg.Leverage);
+                }
+
+                float groupSize = 0;
+                GoalGroupInfo goalGroup = groups.Find(q => q.ID == groupID);
+                groupSize = Convert.ToSingle(goalGroup.Leverage);
+
+                if (totalSize > 0) return groupSize / totalSize;
+                else return 0;
+            }
+            public static int GetGoalContributionGrade(GoalInfo goal, List<GoalInfo> goals, bool isMax, DayInfo day)
+            {
+                float nF = GetNormFactor(goal, goals, day);
+                float contribution = GetGoalContributionWeighted(goal, goals, false, day);
+                float contributionMax = GetGoalContributionWeighted(goal, goals, true, day);
+                float contrGroupMax = DTC.Goals.GetGroupContributionForAll(goal.GroupID, goals, true, DTC.Goals.PerformanceNatureEnum.Normal, day);
+
+                if (isMax)
+                    return (int)Math.Round(100 * contributionMax / (nF * contrGroupMax));
+                else
+                    return (int)Math.Round(100 * contribution / (nF * contrGroupMax));
+            }
+            public static float GetGoalContributionWeighted(GoalInfo goal, List<GoalInfo> goals, bool isMax, DayInfo day)
+            {
+                float nF = GetNormFactor(goal, goals, day);
+
+                if (isMax)
+                {
+                    return nF * DTC.Goals.GetGoalContributionForAll(goal, goals, true, DTC.Goals.PerformanceNatureEnum.Normal, day);
+                }
+                else
+                {
+                    return nF * DTC.Goals.GetGoalContributionForAll(goal, goals, false, DTC.Goals.PerformanceNatureEnum.Normal, day);
+                }
+            }
+            private static float GetNormFactor(GoalInfo goal, List<GoalInfo> goals, DayInfo day)
+            {
+                float weightGroup = DTC.Goals.GetGroupWeight(goal.GroupID, goals);
+                float contrGroupMax = DTC.Goals.GetGroupContributionForAll(goal.GroupID, goals, true, DTC.Goals.PerformanceNatureEnum.Normal, day);
+
+                float weightedMax = weightGroup * 100;
+                float nF = weightedMax / contrGroupMax;     // norm factor
+
+                return nF;
+            }
+            public static float GetGoalContributionForAll(GoalInfo goal, List<GoalInfo> goals, bool isMax, PerformanceNatureEnum perfNature, DayInfo day)
+            {
+                float goalSize = 0;
+                if (isMax)
+                    goalSize = (float)((int)goal.Size);
+                else
+                    goalSize = GetGoalContributionSimple(goal, perfNature, day);
+
+                float totalSize = GetSize(goals);
+
+                if (totalSize > 0)
+                {
+                    return 100 * goalSize / totalSize;
+                }
+                else
+                {
+                    return 0;
+                }
+            }
+            public static float GetGroupContributionForAll(int groupID, List<GoalInfo> goals, bool isMax, PerformanceNatureEnum perfNature, DayInfo day)
+            {
+                float groupSize = 0;
+
+                foreach (GoalInfo g in goals)
+                {
+                    if (g.GroupID == groupID)
+                    {
+                        if (isMax)
+                            groupSize += (float)((int)g.Size);
+                        else
+                            groupSize += GetGoalContributionSimple(g, perfNature, day);
+                    }
+                }
+
+                float totalSize = GetSize(goals);
+
+                if (totalSize > 0)
+                {
+                    return 100 * groupSize / totalSize;
+                }
+                else
+                {
+                    return 0;
+                }
+            }
+            private static float GetGoalContributionSimple(GoalInfo goal, PerformanceNatureEnum perfNature, DayInfo day)
+            {
+                float okSize = 0;
+                float divider = 0;
+
+                if (perfNature == PerformanceNatureEnum.Worst) divider = 100;
+                else divider = goal.GetDesiredPercentage(day);
+
+                float presentValue = goal.GetPresentValue();
+                float presentPercentage = goal.GetPresentPercentage();
+
+                // we used to use pow2 in calculating the performance, this was a geometric penalty
+                // for uncompleted goals, but it resulted a lack of motivation to start a task, so
+                // we set it to 1
+                // remove it after August 2010
+                if (goal.Status == StatusEnum.Success)
+                {
+                    okSize = (float)((int)goal.Size);
+                }
+                else if (goal.Status == StatusEnum.Running)
+                {
+                    if (presentPercentage == 0) okSize = 0;
+                    else
+                    {
+                        if (presentPercentage > divider)
+                        {
+                            okSize = (float)((int)goal.Size);
+                        }
+                        else
+                        {
+                            if (goal.IsBlackAndWhite)
+                                okSize = 0;
+                            else
+                                okSize = (float)((int)goal.Size)
+                                    * (float)Math.Pow((double)(presentPercentage / divider), 1);
+                        }
+                    }
+                }
+                else if (goal.Status == StatusEnum.Fail)
+                {
+                    if (presentPercentage == 0) okSize = 0;
+                    else
+                    {
+                        if (presentPercentage > divider)
+                        {
+                            okSize = (float)((int)goal.Size);
+                        }
+                        else
+                        {
+                            if (goal.IsBlackAndWhite)
+                                okSize = 0;
+                            else
+                                okSize = (float)((int)goal.Size)
+                                    * (float)Math.Pow((double)(presentPercentage / divider), 1);
+                        }
+                    }
+                }
+
+                return okSize;
+            }
+            private static float GetSize(List<GoalInfo> goals)
+            {
+                float totalSize = 0;
+
+                foreach (GoalInfo goal in goals)
+                {
+                    totalSize += (float)((int)goal.Size);
+                }
+
+                return totalSize;
+            }
+
+        }
+
+        public class SegmentsBlocksTasks
+        {
+            public static TaskInfo GetTaskFromSegment(SegmentInfo segment, DateTime dueDate)
+            {
+                BlockInfo block = DB.Blocks.GetBlock(segment.BlockID);
+                ProjectInfo project = DB.Projects.GetProject(block.ProjectID);
+
+                TaskInfo task = new TaskInfo();
+
+                task.SegmentID = segment.ID;
+                task.ProjectGroupID = project.ProjectGroupID;
+                task.ProjectID = project.ID;
+                task.BlockID = segment.BlockID;
+                task.Title = segment.Title;
+                task.IsThing = true;
+                if (segment.Size == DTC.SizeEnum.Small)
+                    task.PlannedTime = 10;
+                else if (segment.Size == DTC.SizeEnum.Medium)
+                    task.PlannedTime = 25;
+                else if (segment.Size == DTC.SizeEnum.Large)
+                    task.PlannedTime = 50;
+                else if (segment.Size == DTC.SizeEnum.Huge)
+                    task.PlannedTime = 100;
+                else if (segment.Size == DTC.SizeEnum.Gigantic)
+                    task.PlannedTime = 200;
+                else if (segment.Size > DTC.SizeEnum.Astronomical)
+                    task.PlannedTime = 400;
+
+                task.Details = segment.Details;
+                task.TaskDate = dueDate;
+
+                return task;
             }
         }
     }

@@ -29,18 +29,17 @@ namespace WebApiAzure.Controllers
         {
             List<ProjectSnapshotInfo> projectsSnapshot = DB.Projects.GetProjectsSnapshot();
 
-            if(isUpdateCompletionRate)
+            if (isUpdateCompletionRate)
             {
                 foreach (ProjectSnapshotInfo ps in projectsSnapshot)
                     DB.Projects.UpdateCompletionRateAndHoursNeeded(ps.ProjectID);
-                projectsSnapshot = DB.Projects.GetProjectsSnapshot();
-
             }
 
             if (rankID > 0)
                 projectsSnapshot = projectsSnapshot.FindAll(i => i.Rank == (DTC.RankEnum)rankID);
 
-            projectsSnapshot = projectsSnapshot.OrderByDescending(i => i.RealTime).OrderBy(i => i.Rank).ToList();
+            //projectsSnapshot = projectsSnapshot.OrderByDescending(i => i.RealTime).OrderBy(i => i.Rank).ToList();
+            
             return projectsSnapshot;
         }
 

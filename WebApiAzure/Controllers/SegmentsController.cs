@@ -29,6 +29,28 @@ namespace WebApiAzure.Controllers
             return segments;
         }
 
+        [Route("api/Segments/{projectID}/{param1}/{param2}/{param3}")]
+        public IEnumerable<SegmentInfo> Get(int projectID, string param1, string param2, string param3)
+        {
+            List<SegmentInfo> segments = new List<SegmentInfo>();
+
+            if(param1 == "LATEST")
+            {
+                int numSegments = Convert.ToInt16(param2);
+                
+                segments = DB.Segments.GetSegmentsCompleted(projectID, numSegments);
+            }
+            else if (param1 == "SEGMENTS_COMPLETED")
+            {
+                DateTime dateStart = DTC.Date.GetDateFromString(param2, DTC.Date.DateStyleEnum.Universal);
+                DateTime dateEnd = DTC.Date.GetDateFromString(param3, DTC.Date.DateStyleEnum.Universal);
+
+                segments = DB.Segments.GetSegmentsCompleted(dateStart, dateEnd, 0);
+            }
+
+            return segments;
+        }
+
         [HttpGet]
         [Route("api/Segments/{segmentID}")]
         public SegmentInfo Get(long segmentID)

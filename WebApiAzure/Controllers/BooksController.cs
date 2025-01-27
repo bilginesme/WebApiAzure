@@ -38,6 +38,16 @@ namespace WebApiAzure.Controllers
             return DB.Books.GetBook(bookID);
         }
 
+        [HttpGet]
+        [Route("api/Books/{param1}/{param2}/{bookID}")]
+        public string Get(string param1, string param2, int bookID)
+        {
+            if(param1 == "REREAD")
+                return DB.Books.ReReadBook(bookID);
+            else
+                return string.Empty;
+        }
+
         [HttpPost]
         [Route("api/Books/")]
         public void Post([FromBody]BookInfo book)
@@ -51,6 +61,7 @@ namespace WebApiAzure.Controllers
         {
             DB.Books.AddUpdateBook(book);
         }
+
 
         [HttpDelete]
         [Route("api/Books/{bookID}")]

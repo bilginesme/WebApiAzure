@@ -24,13 +24,17 @@ namespace WebApiAzure.Controllers
             DateTime dtStart = DateTime.Today;
             DateTime dtEnd = DateTime.Today;
 
+            List<DayInfo> days = new List<DayInfo>();   
+
             if (strDateStart != string.Empty)
                 dtStart = DTC.Date.GetDateFromString(strDateStart, DTC.Date.DateStyleEnum.Universal);
 
             if (strDateEnd != string.Empty)
                 dtEnd = DTC.Date.GetDateFromString(strDateEnd, DTC.Date.DateStyleEnum.Universal);
 
-            return DB.Days.GetDays(dtStart, dtEnd, isCreate);
+            days = DB.Days.GetDays(dtStart, dtEnd, isCreate);
+
+            return days;
         }
 
         [HttpGet]
@@ -60,8 +64,21 @@ namespace WebApiAzure.Controllers
 
         [HttpPut]
         [Route("api/Days/{dayID}")]
-        public void Put(int dayID, [FromBody]DayInfo value)
+        public bool Put(int dayID, [FromBody]DayInfo value)
         {
+            value.StartInstance = TimeZoneInfo.ConvertTimeFromUtc(value.StartInstance, TimeZoneInfo.FindSystemTimeZoneById("Turkey Standard Time"));
+            value.EndInstance = TimeZoneInfo.ConvertTimeFromUtc(value.EndInstance, TimeZoneInfo.FindSystemTimeZoneById("Turkey Standard Time"));
+
+            long dayIDResult = DB.Days.AddUpdateDay(value);
+
+            if (dayIDResult == 0)
+            {
+                return false;
+            }
+            else
+            {
+                return true;
+            }
         }
 
         [HttpDelete]

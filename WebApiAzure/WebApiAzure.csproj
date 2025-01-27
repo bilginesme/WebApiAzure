@@ -251,9 +251,12 @@
     <Compile Include="Areas\HelpPage\XmlDocumentationProvider.cs" />
     <Compile Include="Controllers\AccountController.cs" />
     <Compile Include="Controllers\ActionableProjectsController.cs" />
+    <Compile Include="Controllers\DiariesController.cs" />
     <Compile Include="Controllers\SegmentGoalsOfBlockController.cs" />
     <Compile Include="Controllers\GoalsOfSegmentsController.cs" />
     <Compile Include="Controllers\IdeasController.cs" />
+    <Compile Include="Controllers\TaskTemplatesController.cs" />
+    <Compile Include="Controllers\SubProjectPerformanceController.cs" />
     <Compile Include="Controllers\SubProjectsController.cs" />
     <Compile Include="Controllers\DaysController.cs" />
     <Compile Include="Controllers\GoalsOfFocusController.cs" />
@@ -263,6 +266,7 @@
     <Compile Include="Controllers\ProjectReportsController.cs" />
     <Compile Include="Controllers\ProjectTypesController.cs" />
     <Compile Include="Controllers\RealHoursController.cs" />
+    <Compile Include="Controllers\TasksOfProjectController.cs" />
     <Compile Include="Controllers\WeeksController.cs" />
     <Compile Include="Controllers\EventsController.cs" />
     <Compile Include="Controllers\ProjectPerformancesController.cs" />
@@ -273,7 +277,7 @@
     <Compile Include="Controllers\OldestBlocksController.cs" />
     <Compile Include="Controllers\TasksController.cs" />
     <Compile Include="Controllers\ClustersController.cs" />
-    <Compile Include="Controllers\BlocksEnhacedController.cs" />
+    <Compile Include="Controllers\BlocksEnhancedController.cs" />
     <Compile Include="Controllers\GoalGroupsController.cs" />
     <Compile Include="Controllers\GoalsController.cs" />
     <Compile Include="Controllers\GoalsOfProjectController.cs" />
@@ -298,6 +302,7 @@
     <Compile Include="Models\ProjectMonitorItemInfo.cs" />
     <Compile Include="Models\ReportItemInfo.cs" />
     <Compile Include="Models\GenericItemInfo.cs" />
+    <Compile Include="Models\SubProjectPerformanceInfo.cs" />
     <Compile Include="Models\SubProjectInfo.cs" />
     <Compile Include="Models\WeeklyPerformanceInfo.cs" />
     <Compile Include="Models\BookInfo.cs" />

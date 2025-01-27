@@ -31,6 +31,25 @@ namespace WebApiAzure.Controllers
             return blocks;
         }
 
+        [Route("api/Blocks/{projectID}/{param1}/{param2}/{param3}")]
+        public IEnumerable<BlockInfo> Get(int projectID, string param1, string param2, string param3)
+        {
+            List<BlockInfo> blocks = new List<BlockInfo>();
+
+            if (param1 == "LATEST")
+            {
+                int numBlocks = Convert.ToInt16(param2);
+
+                blocks = DB.Blocks.GetBlocksCompleted(projectID, numBlocks);
+            }
+            else if (param1 == "FROM_STRING_SPLIT")
+            {
+                blocks = DB.Blocks.GetBlocksFromStringSplit(param2);
+            }
+
+            return blocks;
+        }
+
         [HttpGet]
         [Route("api/Blocks/{blockID}")]
         public BlockInfo Get(long blockID)
@@ -50,6 +69,20 @@ namespace WebApiAzure.Controllers
         public void Put(long blockID, [FromBody] BlockInfo block)
         {
             DB.Blocks.AddUpdateBlock(block);
+        }
+
+        [HttpPut]
+        [Route("api/Blocks/{param}/{blockID}")]
+        public bool Put(string param, long blockID, [FromBody] BlockInfo block)
+        {
+            if(param == "COMPLETE")
+            {
+                return DB.Blocks.CompleteTheBlock(blockID);
+            }
+            else
+            {
+                return false;
+            }
         }
 
         [HttpDelete]

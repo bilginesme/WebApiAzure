@@ -57,9 +57,9 @@ namespace WebApiAzure.Controllers
 
         [HttpDelete]
         [Route("api/ProjectGroups/{projectGroupID}")]
-        public void Delete(int projectGroupID)
+        public string Delete(int projectGroupID)
         {
-            
+            return DB.ProjectGroups.DeleteProjectGroup(projectGroupID);
         }
     }
 }

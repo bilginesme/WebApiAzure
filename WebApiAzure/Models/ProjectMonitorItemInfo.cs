@@ -17,7 +17,7 @@ namespace WebApiAzure.Models
         public ProjectMonitorItemInfo()
         {
             ProjectID = 0;
-            TheDate = string.Empty;
+            TheDate = DateTime.MinValue;
             NumMinutes = 0;
         }
         #endregion

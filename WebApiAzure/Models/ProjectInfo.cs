@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Web;
 
 namespace WebApiAzure.Models
 {
@@ -14,6 +11,7 @@ namespace WebApiAzure.Models
         public string Name { get; set; }
         public string Code { get; set; }
         public string ProjectImgName { get; set; }
+        public string ProjectImageThumb { get; set; }
         public string Details { get; set; }
         public int ProjectGroupID { get; set; }
         public bool IsCompletable { get; set; }
@@ -28,16 +26,19 @@ namespace WebApiAzure.Models
         public DTC.RangeEnum MonitoringFrequency { get; set; }
         public string SmartCode { get; set; }
         public float CompletionRate { get; set; }
+        public long LatestBlockID { get; set; }
+        public string ProjectColor { get; set; }
         #endregion
 
         #region Constructors
         public ProjectInfo()
         {
             ID = 0;
-            Name = "";
-            Code = "";
+            Name = string.Empty;
+            Code = string.Empty;
             ProjectImgName = string.Empty;
-            Details = "";
+            ProjectImageThumb = string.Empty;
+            Details = string.Empty;
             ProjectGroupID = 0;
             IsCompletable = true;
             IsActionable = false;
@@ -50,6 +51,8 @@ namespace WebApiAzure.Models
             ShowHowManyTasks = ShowHowManyTasksEnum.All;
             MonitoringFrequency = DTC.RangeEnum.Month;
             CompletionRate = 0;
+            LatestBlockID = 0;
+            ProjectColor = string.Empty;
         }
         public ProjectInfo(int id, string name)
         {

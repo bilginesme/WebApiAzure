@@ -5,6 +5,9 @@ using System.Web;
 using System.Data;
 using System.Data.SqlClient;
 using WebApiAzure.Models;
+using static WebApiAzure.DB;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace WebApiAzure
 {
@@ -285,6 +288,7 @@ namespace WebApiAzure
             segment.Details = Convert.ToString(dr["Details"]);
             segment.BlockID = Convert.ToInt32(dr["BlockID"]);
             segment.Status = (DTC.StatusEnum)Convert.ToInt16(dr["StatusID"]);
+            segment.Size = (DTC.SizeEnum)Convert.ToInt16(dr["Size"]);
             segment.StartDate = Convert.ToDateTime(dr["StartDate"]);
             segment.EndDate = Convert.ToDateTime(dr["EndDate"]);
 
@@ -308,13 +312,29 @@ namespace WebApiAzure
         }
         public static string UpdateSegment(SegmentInfo segment)
         {
+            List<GoalInfo> goalsOfSegment = Goals.GetGoals("SELECT * FROM Goals WHERE ItemID = " + segment.ID, false);
+            foreach(GoalInfo goal in goalsOfSegment)
+            {
+                goal.Definition = segment.Title;
+                Goals.UpdateGoal(goal);
+            }
+
+            List<TaskInfo> tasksOfSegment = Tasks.GetTasksOfSegment(segment.ID, TaskStatusEnum.All);
+            foreach(TaskInfo task in tasksOfSegment)
+            {
+                task.Title = segment.Title;
+                task.BlockID = segment.BlockID;
+                Tasks.AddUpdateTask(task);  
+            }
+
             string strSQL = "UPDATE Segments SET " +
                 " Title = '" + DTC.Control.InputText(segment.Title, 255) + "'," +
                 " BlockID = " + segment.BlockID + "," +
                 " Details = '" + DTC.Control.InputText(segment.Details, 255) + "'," +
                 " StartDate = " + DTC.ObtainGoodDT(segment.StartDate, true) + "," +
                 " EndDate = " + DTC.ObtainGoodDT(segment.EndDate, true) + "," +
-                " StatusID = " + (int)segment.Status +
+                " StatusID = " + (int)segment.Status + ", " +
+                " Size = " + (int)segment.Size +
                 " WHERE SegmentID = " + segment.ID;
             RunNonQuery(strSQL);
 
@@ -331,7 +351,7 @@ namespace WebApiAzure
                 DTC.ObtainGoodDT(DateTime.Today, true) + "," +
                 DTC.ObtainGoodDT(DateTime.Today, true) + "," +
                 0 + "," +
-                2 + "," +
+                (int)segment.Size + "," +
                 (int)DTC.StatusEnum.Running + "," +
                 xIconID +
                 ")";
@@ -452,7 +472,7 @@ namespace WebApiAzure
                 {
                     SQL = "INSERT INTO Tasks " +
                         " (Title, Details, IsCompleted, IsPrivilaged, " +
-                        " ProjectGroupID, ProjectID, BlockID, SegmentID," +
+                        " ProjectGroupID, ProjectID, SubProjectID, ClusterID, BlockID, SegmentID," +
                         " StartDate, EndDate, TaskDate, PlannedTime, RealTime," +
                         " IsFloating, IsThing, CanBeep, OrderGeneral, OrderActive, " +
                         " Seperator, SeperatorHour, TemplateID" +
@@ -463,6 +483,8 @@ namespace WebApiAzure
                         Convert.ToInt16(task.IsPrivilaged) + "," +
                         task.ProjectGroupID + "," +
                         task.ProjectID + "," +
+                        task.SubProjectID + "," +
+                        task.ClusterID + "," +
                         task.BlockID + "," +
                         task.SegmentID + "," +
                         DTC.Date.ObtainGoodDT(task.StartDate, true) + "," +
@@ -490,6 +512,8 @@ namespace WebApiAzure
                         " IsPrivilaged = " + Convert.ToInt16(task.IsPrivilaged) + "," +
                         " ProjectGroupID = " + task.ProjectGroupID + "," +
                         " ProjectID = " + task.ProjectID + "," +
+                        " SubProjectID = " + task.SubProjectID + "," +
+                        " ClusterID = " + task.ClusterID + "," +
                         " BlockID = " + task.BlockID + "," +
                         " SegmentID = " + task.SegmentID + "," +
                         " StartDate = " + DTC.Date.ObtainGoodDT(task.StartDate, true) + "," +
@@ -508,16 +532,32 @@ namespace WebApiAzure
                         " WHERE TaskID = " + task.ID;
                     RunNonQuery(SQL);
                 }
+                 
+                SQL = "UPDATE Projects " +
+                    " SET LastTaskDate = " + DTC.ObtainGoodDT(DateTime.Today, true) +
+                    " WHERE ProjectID = " + task.ProjectID;
+                RunNonQuery(SQL);
+
 
                 return task.ID;
             }
-            public static void UpdateTaskOrder(long taskID, int order)
+            public static long UpdateTaskOrder(long taskID, int order)
             {
                 string  SQL = "UPDATE Tasks SET " +
                         " OrderGeneral = " + order + "," +
                         " OrderActive = " + order +  
                         " WHERE TaskID = " + taskID;
-                RunNonQuery(SQL);
+                try
+                {
+                    RunNonQuery(SQL);
+                    return taskID;
+
+                }
+                catch
+                {
+                    return 0;
+                }
+                
             }
             public static bool DeleteTask(long taskID)
             {
@@ -526,6 +566,21 @@ namespace WebApiAzure
 
                 strSQL = "DELETE Tasks WHERE TaskID = " + taskID;
                 RunNonQuery(strSQL);
+
+                return true;
+            }
+            public static bool DeleteTasks(string strTasks)
+            {
+                List<string> taskIDs =  DTC.SplitInto(strTasks, '|');
+
+                foreach(string taskID in taskIDs)
+                {
+                    string strSQL = "DELETE CoTasks WHERE TaskID = " + taskID;
+                    RunNonQuery(strSQL);
+
+                    strSQL = "DELETE Tasks WHERE TaskID = " + taskID;
+                    RunNonQuery(strSQL);
+                }
 
                 return true;
             }
@@ -539,6 +594,39 @@ namespace WebApiAzure
 
                 AddUpdateTask(newTask);
                 InsertTaskPriority(tasks, newTask, task.OrderActive + 1);
+            }
+            public static List<TaskInfo> GetTasksFromStringSplit(string strTasks)
+            {
+                List<TaskInfo> data = new List<TaskInfo>();
+                List<string> taskIDs = DTC.SplitInto(strTasks, '|');
+
+                string strSQL = "SELECT * FROM Tasks WHERE TaskID = -1 ";
+                foreach (string taskID in taskIDs)
+                {
+                    strSQL += " OR TaskID = " + taskID;
+                }
+                DataTable dt = RunExecuteReader(strSQL);
+                foreach (DataRow dr in dt.Rows)
+                    data.Add(GetTask(dr));
+
+                return data;
+            }
+            public static bool CloneTasks(string strTasks)
+            {
+                List<TaskInfo> tasks = GetTasksFromStringSplit(strTasks);
+
+                foreach (TaskInfo task in tasks)
+                {
+                    TaskInfo newTask = task;
+
+                    newTask.ID = 0;
+                    newTask.RealTime = 0;
+                    newTask.IsCompleted = false;
+
+                    AddUpdateTask(newTask);
+                }
+
+                return true;
             }
             public static bool SegmentTask(TaskInfo task, DateTime destDate)
             {
@@ -581,6 +669,8 @@ namespace WebApiAzure
                     info.IsPrivilaged = Convert.ToBoolean(dr["IsPrivilaged"]);
                     info.ProjectGroupID = Convert.ToInt32(dr["ProjectGroupID"]);
                     info.ProjectID = Convert.ToInt32(dr["ProjectID"]);
+                    info.SubProjectID = Convert.ToInt32(dr["SubProjectID"]);
+                    info.ClusterID = Convert.ToInt32(dr["ClusterID"]);
                     info.BlockID = Convert.ToInt32(dr["BlockID"]);
                     info.SegmentID = Convert.ToInt32(dr["SegmentID"]);
                     info.StartDate = Convert.ToDateTime(dr["StartDate"]);
@@ -607,9 +697,7 @@ namespace WebApiAzure
                 info.IsThing = Convert.ToBoolean(dr["IsThing"]);
                 info.IsFloating = Convert.ToBoolean(dr["IsFloating"]);
                 info.CanBeep = Convert.ToBoolean(dr["CanBeep"]);
-
                 info.PlannedTime = Convert.ToInt16(dr["PlannedTime"]);
-
                 info.ProjectID = Convert.ToInt32(dr["ProjectID"]);
                 info.ProjectGroupID = Convert.ToInt32(dr["ProjectGroupID"]);
 
@@ -635,7 +723,7 @@ namespace WebApiAzure
                 
                 return data;
             }
-            public static List<TaskInfo> GetTasks(ProjectInfo project, TaskStatusEnum taskStatus)
+            public static List<TaskInfo> GetTasks(long projectID, TaskStatusEnum taskStatus, int numTasks)
             {
                 string filterSQL = "";
 
@@ -646,10 +734,10 @@ namespace WebApiAzure
                 else if (taskStatus == TaskStatusEnum.All)
                     filterSQL = "";
 
-                string SQL = "SELECT * FROM Tasks " +
-                    " WHERE ProjectID = " + project.ID +
+                string SQL = "SELECT TOP " + numTasks + " * FROM Tasks " +
+                    " WHERE ProjectID = " + projectID +
                     filterSQL +
-                    " ORDER BY IsCompleted ASC, OrderGeneral ASC";
+                    " ORDER BY TaskDate DESC";
 
                 return GetTasks(SQL);
             }
@@ -715,6 +803,7 @@ namespace WebApiAzure
                 string strSQL = "SELECT * FROM Tasks " +
                     " WHERE TaskDate >= " + DTC.Date.ObtainGoodDT(startDate, true) +
                     " AND TaskDate <= " + DTC.Date.ObtainGoodDT(endDate, true) +
+                    " AND TemplateID = 0" +
                     filterSQL +
                     " ORDER BY IsCompleted ASC, OrderActive ASC";
 
@@ -1088,6 +1177,81 @@ namespace WebApiAzure
 
                 return result;
             }
+
+            public static bool PostponeTasks(string strTasks, DateTime newDate)
+            {
+                List<string> taskIDs = DTC.SplitInto(strTasks, '|');
+                DayInfo day = Days.GetDay(newDate, true);
+
+                foreach (string strTaskID in taskIDs)
+                {
+                    long taskID = Convert.ToInt32(strTaskID);
+                    TaskInfo task = GetTask(taskID);
+                    long segmentID = task.SegmentID;
+
+                    if(segmentID > 0)
+                    {
+                        string strSQLGoal = "UPDATE Goals SET" +
+                        " DateStart = " + DTC.Date.ObtainGoodDT(newDate, true) + "," +
+                        " DateEnd = " + DTC.Date.ObtainGoodDT(newDate, true) + "," +
+                        " DateDue = " + DTC.Date.ObtainGoodDT(newDate, true) + ", " +
+                        " OwnerID = " + day.DayID +
+                        " WHERE ItemID = " + segmentID;
+                        RunNonQuery(strSQLGoal);
+                    }
+
+                    string strSQLTask = "UPDATE Tasks SET " +
+                        " StartDate = " + DTC.Date.ObtainGoodDT(newDate, true) + "," +
+                        " EndDate = " + DTC.Date.ObtainGoodDT(newDate, true) + "," +
+                        " TaskDate = " + DTC.Date.ObtainGoodDT(newDate, true) + 
+                        " WHERE TaskID = " + strTaskID;
+                    RunNonQuery(strSQLTask);
+                }
+
+                return true;
+            }
+            public static bool CompleteTasks(string strTasks)
+            {
+                List<string> taskIDs = DTC.SplitInto(strTasks, '|');
+
+                foreach (string taskID in taskIDs)
+                {
+                    TaskInfo task = GetTask(Convert.ToInt32(taskID));
+                    float realTime = task.RealTime;
+                    if(realTime == 0)
+                    {
+                        realTime = task.PlannedTime;
+                    }
+
+                    string strSQL = "UPDATE Tasks SET " +
+                         " IsCompleted = 1," +
+                         " RealTime = " + realTime + 
+                         " WHERE TaskID = " + taskID;
+                    RunNonQuery(strSQL);
+                }
+
+                return true;
+            }
+            public static List<TaskInfo> CreateTasksWithTemplate(int templateID, DateTime thedate)
+            {
+                List<TaskInfo> tasksOfTemplate = TaskTemplates.GetTasksWithTemplate(templateID);
+                List<TaskInfo> tasksNew = new List<TaskInfo>();
+                foreach(TaskInfo task in tasksOfTemplate)
+                {
+                    task.ID = 0;
+                    task.TemplateID = 0;
+                    task.StartDate = thedate;
+                    task.EndDate= thedate;
+                    task.TaskDate = thedate;
+                    task.IsCompleted = false;
+                    task.RealTime = 0;
+
+                    tasksNew.Add(task);
+                    AddUpdateTask(task);
+                }
+
+                return tasksNew;
+            }
         }
 
         public class CoTasks
@@ -1207,10 +1371,11 @@ namespace WebApiAzure
                     RunNonQuery(SQL);
                 }
             }
-            public static List<TaskInfo> GetTasksWithTemplate(TaskTemplateInfo taskTemplate)
+            public static List<TaskInfo> GetTasksWithTemplate(int templateID)
             {
-                string SQL = "SELECT * FROM Tasks WHERE TemplateID=" + taskTemplate.ID +
-                    " ORDER BY TrayZOrder";
+                string SQL = "SELECT * FROM Tasks " +
+                    " WHERE TemplateID = " + templateID +
+                    " ORDER BY OrderActive";
                 return Tasks.GetTasks(SQL);
             }
             public static TaskTemplateInfo GetTaskTemplate(DataRow dr)
@@ -1223,18 +1388,18 @@ namespace WebApiAzure
 
                 return info;
             }
-            public static Dictionary<int, TaskTemplateInfo> GetTaskTemplates(string strSQL)
+            private static List<TaskTemplateInfo> GetTaskTemplates(string strSQL)
             {
-                Dictionary<int, TaskTemplateInfo> dict = new Dictionary<int, TaskTemplateInfo>();
+                List<TaskTemplateInfo> data = new List<TaskTemplateInfo>();
                 DataTable dt = RunExecuteReader(strSQL);
                 foreach (DataRow dr in dt.Rows)
                 {
-                    dict.Add(Convert.ToInt32(dr["TaskTemplateID"]), GetTaskTemplate(dr));
+                    data.Add(GetTaskTemplate(dr));
                 }
                 
-                return dict;
+                return data;
             }
-            public static Dictionary<int, TaskTemplateInfo> GetTaskTemplates()
+            public static List<TaskTemplateInfo> GetTaskTemplates()
             {
                 string SQL = "SELECT * FROM TaskTemplates ORDER BY TaskTemplateName ASC";
                 return GetTaskTemplates(SQL);
@@ -1292,6 +1457,8 @@ namespace WebApiAzure
                 if (dr["EndDate"] != DBNull.Value) info.EndDate = Convert.ToDateTime(dr["EndDate"]);
                 info.ProjectTypeID = Convert.ToInt16(dr["ProjectTypeID"]);
                 info.Status = (DTC.StatusEnum) Convert.ToInt16(dr["StatusID"]);
+                if(dr["Details"] != DBNull.Value)
+                    info.Details = Convert.ToString(dr["Details"]);
 
                 return info;
             }
@@ -1338,7 +1505,7 @@ namespace WebApiAzure
                     " SUM(Tasks.RealTime) AS TOTAL,  ProjectGroups.ProjectGroupCode," +
                     " ProjectGroups.ProjectGroupName,ProjectTypeID, ProjectGroups.IsActive," +
                     " ProjectGroups.IsActionable, ProjectGroups.IsCompletable, ProjectGroups.IsCompleted, " +
-                    " ProjectGroups.StartDate, ProjectGroups.EndDate, ProjectGroups.DueDate" +
+                    " ProjectGroups.StartDate, ProjectGroups.EndDate, ProjectGroups.DueDate, ProjectGroups.Details " +
                     " FROM Tasks INNER JOIN" +
                     " ProjectGroups ON Tasks.ProjectGroupID = ProjectGroups.ProjectGroupID" +
                     " WHERE ProjectGroups.IsActive = 1" +
@@ -1346,7 +1513,7 @@ namespace WebApiAzure
                     " GROUP BY Tasks.ProjectGroupID, ProjectGroups.ProjectGroupCode," +
                     " ProjectGroups.ProjectGroupName,ProjectTypeID, ProjectGroups.IsActive," +
                     " ProjectGroups.IsActionable, ProjectGroups.IsCompletable, ProjectGroups.IsCompleted, ProjectGroups.StartDate," +
-                    " ProjectGroups.EndDate, ProjectGroups.DueDate" +
+                    " ProjectGroups.EndDate, ProjectGroups.DueDate, ProjectGroups.Details" +
                     " ORDER BY ProjectGroups.ProjectGroupCode";
                 DataTable dt = RunExecuteReader(strSQL);
                 foreach (DataRow dr in dt.Rows)
@@ -1365,14 +1532,15 @@ namespace WebApiAzure
                 {
                     SQL = "SET NOCOUNT ON INSERT INTO ProjectGroups" +
                     " (ProjectGroupCode, ProjectGroupName, ProjectTypeID, " +
-                    " StatusID, StartDate, EndDate)" +
+                    " StatusID, StartDate, EndDate, Details)" +
                     " VALUES (" +
                     "'" + DTC.Control.InputText(projectGroup.Code, 5) + "'," +
                     "'" + DTC.Control.InputText(projectGroup.Name, 25) + "'," +
                     projectGroup.ProjectTypeID + "," +
                     (int)projectGroup.Status + "," +
                     DTC.Date.ObtainGoodDT(projectGroup.StartDate, true) + "," +
-                    DTC.Date.ObtainGoodDT(projectGroup.EndDate, true) + "," +
+                    DTC.Date.ObtainGoodDT(projectGroup.EndDate, true) + ", " +
+                    "'" + DTC.Control.InputText(projectGroup.Details) + "'" +
                     ") SELECT SCOPE_IDENTITY() AS ProjectGroupID";
                     projectGroup.ID = (int)RunExecuteScalar(SQL);
                 }
@@ -1384,63 +1552,64 @@ namespace WebApiAzure
                     " ProjectTypeID = " + projectGroup.ProjectTypeID + "," +
                     " StatusID = " + (int)projectGroup.Status + "," +
                     " StartDate = " + DTC.Date.ObtainGoodDT(projectGroup.StartDate, true) + "," +
-                    " EndDate = " + DTC.Date.ObtainGoodDT(projectGroup.EndDate, true) + 
+                    " EndDate = " + DTC.Date.ObtainGoodDT(projectGroup.EndDate, true) + "," +
+                    " Details = '" + DTC.Control.InputText(projectGroup.Details) + "'" +
                     " WHERE ProjectGroupID = " + projectGroup.ID;
                     RunNonQuery(SQL);
                 }
 
                 return projectGroup.ID;
             }
-            public static string DeleteProjectGroup(ProjectGroupInfo projectGroup)
+            public static string DeleteProjectGroup(int projectGroupID)
             {
-                string strSQL = "";
-                string tables = "";
+                string strSQL = string.Empty;
+                string tables = string.Empty;
 
                 strSQL = "SELECT * FROM Projects " +
-                    " WHERE ProjectGroupID = " + projectGroup.ID;
+                    " WHERE ProjectGroupID = " + projectGroupID;
                 DataTable dt = RunExecuteReader(strSQL);
                 foreach (DataRow dr in dt.Rows)
                     tables += "Projects\n";
 
                 strSQL = "SELECT * FROM Tasks " +
-                    " WHERE ProjectGroupID = " + projectGroup.ID;
+                    " WHERE ProjectGroupID = " + projectGroupID;
                 dt = RunExecuteReader(strSQL);
                 foreach (DataRow dr in dt.Rows)
                     tables += "Tasks\n";
 
                 strSQL = "SELECT * FROM TaskTemplateLog " +
-                    " WHERE ProjectGroupID = " + projectGroup.ID;
+                    " WHERE ProjectGroupID = " + projectGroupID;
                 dt = RunExecuteReader(strSQL);
                 foreach (DataRow dr in dt.Rows)
                     tables += "Task Templates\n";
 
                 strSQL = "SELECT * FROM CoTasks " +
-                    " WHERE ProjectGroupID = " + projectGroup.ID;
+                    " WHERE ProjectGroupID = " + projectGroupID;
                 dt = RunExecuteReader(strSQL);
                 foreach (DataRow dr in dt.Rows)
                     tables += "Co-Tasks\n";
 
                 strSQL = "SELECT * FROM IdeaGroups " +
-                    " WHERE ProjectGroupID = " + projectGroup.ID;
+                    " WHERE ProjectGroupID = " + projectGroupID;
                 dt = RunExecuteReader(strSQL);
                 foreach (DataRow dr in dt.Rows)
                     tables += "Idea Groups\n";
 
                 strSQL = "SELECT * FROM Pragmas " +
-                    " WHERE ProjectGroupID = " + projectGroup.ID;
+                    " WHERE ProjectGroupID = " + projectGroupID;
                 dt = RunExecuteReader(strSQL);
                 foreach (DataRow dr in dt.Rows)
                     tables += "Pragmas\n";
 
                 strSQL = "SELECT * FROM PragmaInstances " +
-                    " WHERE ProjectGroupID = " + projectGroup.ID;
+                    " WHERE ProjectGroupID = " + projectGroupID;
                 dt = RunExecuteReader(strSQL);
                 foreach (DataRow dr in dt.Rows)
                     tables += "Pragma Instances\n";
 
-                if (tables == "")
+                if (tables == string.Empty)
                 {
-                    strSQL = "DELETE ProjectGroups WHERE ProjectGroupID = " + projectGroup.ID;
+                    strSQL = "DELETE ProjectGroups WHERE ProjectGroupID = " + projectGroupID;
                     RunNonQuery(strSQL);
                 }
                 
@@ -1457,13 +1626,16 @@ namespace WebApiAzure
                 if (project.ID == 0)
                 {
                     SQL = "SET NOCOUNT ON INSERT INTO Projects " +
-                          " (ProjectCode, ProjectName, ProjectGroupID, ProjectDetails, " +
+                          " (ProjectCode, ProjectName, ProjectGroupID, ProjectImageThumb, " + 
+                          " ProjectDetails, " +
                           " StatusID, RankID, IsCompletable, IsActionable, " +
-                          " StartDate, EndDate, DueDate, TheOrder, ShowHowManyTasks, MonitoringFrequency)" +
+                          " StartDate, EndDate, DueDate, TheOrder, ShowHowManyTasks, " +
+                          " MonitoringFrequency, LatestBlockID, ProjectColor)" +
                           " VALUES (" +
                           "'" + DTC.Control.InputText(project.Code, 5) + "'," +
                           "'" + DTC.Control.InputText(project.Name, 25) + "'," +
                           project.ProjectGroupID + "," +
+                          "'" + project.ProjectImageThumb + "'," +
                           "'" + DTC.Control.InputText(project.Details, 255) + "'," +
                           Convert.ToInt16(project.Status) + "," +
                           Convert.ToInt16(project.Rank) + "," +
@@ -1474,7 +1646,9 @@ namespace WebApiAzure
                           DTC.Date.ObtainGoodDT(project.DueDate, true) + "," +
                           project.Order + "," +
                           (int)project.ShowHowManyTasks + "," +
-                          (int)project.MonitoringFrequency +
+                          (int)project.MonitoringFrequency + "," +
+                          project.LatestBlockID + "," +
+                          "'" + project.ProjectColor + "'" +
                           ") SELECT SCOPE_IDENTITY() AS ProjectID";
                     project.ID = (int)RunExecuteScalar(SQL);
                 }
@@ -1484,6 +1658,7 @@ namespace WebApiAzure
                         " ProjectCode = '" + DTC.Control.InputText(project.Code, 5) + "'," +
                         " ProjectName = '" + DTC.Control.InputText(project.Name, 25) + "'," +
                         " ProjectGroupID = " + project.ProjectGroupID + "," +
+                        " ProjectImageThumb = '" + project.ProjectImageThumb + "', " +
                         " ProjectDetails = '" + DTC.Control.InputText(project.Details, 255) + "'," +
                         " StatusID = " + Convert.ToInt16(project.Status) + "," +
                         " RankID = " + Convert.ToInt16(project.Rank) + "," +
@@ -1494,14 +1669,16 @@ namespace WebApiAzure
                         " DueDate = " + DTC.Date.ObtainGoodDT(project.DueDate, true) + "," +
                         " TheOrder = " + project.Order + "," +
                         " ShowHowManyTasks = " + (int)project.ShowHowManyTasks + "," +
-                        " MonitoringFrequency = " + (int)project.MonitoringFrequency +
+                        " MonitoringFrequency = " + (int)project.MonitoringFrequency + ", " +
+                        " LatestBlockID = " + project.LatestBlockID + "," +
+                        " ProjectColor = '" + project.ProjectColor + "' " +
                         " WHERE ProjectID = " + project.ID;
                     RunNonQuery(SQL);
                 }
 
                 return project.ID;
             }
-            public static ProjectInfo GetProject(DataRow dr)
+            private static ProjectInfo GetProject(DataRow dr)
             {
                 ProjectInfo info = new ProjectInfo();
 
@@ -1509,6 +1686,7 @@ namespace WebApiAzure
                 info.Name = Convert.ToString(dr["ProjectName"]);
                 info.Code = Convert.ToString(dr["ProjectCode"]);
                 info.ProjectImgName = Convert.ToString(dr["ProjectImgName"]);
+                info.ProjectImageThumb = Convert.ToString(dr["ProjectImageThumb"]);
                 info.Details = Convert.ToString(dr["ProjectDetails"]);
                 info.IsCompletable = Convert.ToBoolean(dr["IsCompletable"]);
                 info.IsActionable = Convert.ToBoolean(dr["IsActionable"]);
@@ -1522,6 +1700,8 @@ namespace WebApiAzure
                 info.CompletionRate = Convert.ToSingle(dr["CompletionRate"]);
                 info.ShowHowManyTasks = (ProjectInfo.ShowHowManyTasksEnum)Convert.ToInt16(dr["ShowHowManyTasks"]);
                 info.MonitoringFrequency = (DTC.RangeEnum)Convert.ToInt16(dr["MonitoringFrequency"]);
+                info.LatestBlockID = Convert.ToInt32(dr["LatestBlockID"]);
+                info.ProjectColor = Convert.ToString(dr["ProjectColor"]);
 
                 return info;
             }
@@ -1532,7 +1712,7 @@ namespace WebApiAzure
                 string strSQL = "SELECT * FROM Projects " +
                     " WHERE IsActionable = 1 " +
                     " AND StatusID = 1" +
-                    " AND RankID > 0";
+                    " ORDER BY LastTaskDate DESC";
                 DataTable dt = RunExecuteReader(strSQL);
 
                 foreach (DataRow dr in dt.Rows)
@@ -1597,14 +1777,15 @@ namespace WebApiAzure
                 return GetProjects(strSQL);
             }
 
-            public static List<ProjectInfo> GetProjectsRelatedToTasks(DateTime taskDate)
+            public static List<ProjectInfo> GetProjectsRelatedToTasks(DateTime dateStart, DateTime dateEnd)
             {
-                string strSQL = "SELECT Projects.* " +
+                string strSQL = "SELECT DISTINCT Projects.* " +
                     " FROM Tasks " +
                     " INNER JOIN " +
                     " Projects ON Tasks.ProjectID = Projects.ProjectID " +
                     " WHERE Tasks.TemplateID = 0" +
-                    " AND Tasks.TaskDate = " + DTC.ObtainGoodDT(taskDate, true);
+                    " AND Tasks.TaskDate >= " + DTC.ObtainGoodDT(dateStart, true) + 
+                    " AND Tasks.TaskDate <= " + DTC.ObtainGoodDT(dateEnd, true);
                 return GetProjects(strSQL);
             }
 
@@ -1613,22 +1794,25 @@ namespace WebApiAzure
                 List<ProjectSnapshotInfo> data = new List<ProjectSnapshotInfo>();
                 DateTime dtTreshold = DateTime.Now.AddDays(-30);
 
-                string strSQL = "SELECT Projects.ProjectID, Projects.StatusID, Projects.RankID, Projects.ProjectName, Projects.ProjectCode,  Projects.ProjectDetails, " +
+                string strSQL = "SELECT Projects.ProjectID, Projects.StatusID, Projects.RankID, Projects.ProjectImageThumb, " + 
+                    " Projects.ProjectName, Projects.ProjectCode,  Projects.ProjectDetails, " +
                     " SUM(Tasks.RealTime) AS RealTimeTotal, " +
                     " ProjectGroups.ProjectGroupCode, Projects.DueDate, Projects.StartDate, Projects.CompletionRate, " +
                     " Projects.EstimatedCompletionDate, Projects.EstimatedCompletionDateBasedOnLast30Days, Projects.HoursNeededToComplete, Projects.WorkPerDayNeededForDueDate, " +
-                    " Projects.ProjectImgName " +
+                    " Projects.ProjectImgName, Projects.LastTaskDate, Projects.ProjectColor " +
                     " FROM Projects " +
                     " INNER JOIN Tasks ON Projects.ProjectID = Tasks.ProjectID " +
                     " INNER JOIN ProjectGroups ON Projects.ProjectGroupID = ProjectGroups.ProjectGroupID " +
                     " WHERE Projects.IsActionable = 1 " +
                     " AND Projects.StatusID = 1 " +
-                    " AND Projects.RankID > 0 " +
+                    " AND Projects.RankID >= 0 " +
                     " AND Tasks.TaskDate >= " + DTC.ObtainGoodDT(dtTreshold, false) +
-                    " GROUP BY Projects.ProjectID, Projects.StatusID, Projects.RankID, Projects.ProjectName, Projects.ProjectCode, Projects.ProjectDetails," +
+                    " GROUP BY Projects.ProjectID, Projects.StatusID, Projects.RankID, Projects.ProjectImageThumb, +" +
+                    " Projects.ProjectName, Projects.ProjectCode, Projects.ProjectDetails," +
                     " ProjectGroups.ProjectGroupCode, Projects.DueDate, Projects.StartDate, Projects.CompletionRate, " +
                     " Projects.EstimatedCompletionDate, Projects.EstimatedCompletionDateBasedOnLast30Days, Projects.HoursNeededToComplete, Projects.WorkPerDayNeededForDueDate, " +
-                    " Projects.ProjectImgName ";
+                    " Projects.ProjectImgName, Projects.LastTaskDate, Projects.ProjectColor " +
+                    " ORDER BY Projects.LastTaskDate DESC";
                 DataTable dt = RunExecuteReader(strSQL);
 
                 foreach (DataRow dr in dt.Rows)
@@ -1658,7 +1842,11 @@ namespace WebApiAzure
                     projectSnapshot.HoursNeededToComplete = Convert.ToSingle(dr["HoursNeededToComplete"]);
                     projectSnapshot.WorkPerDayNeededForDueDate = Convert.ToSingle(dr["WorkPerDayNeededForDueDate"]);
                     projectSnapshot.ProjectImgName = Convert.ToString(dr["ProjectImgName"]);
+                    projectSnapshot.ProjectColor = Convert.ToString(dr["ProjectColor"]);
                     projectSnapshot.PercentCompleted = 67;
+
+                    if (dr["ProjectImageThumb"] != DBNull.Value)
+                        projectSnapshot.ProjectImageThumb= Convert.ToString(dr["ProjectImageThumb"]);
 
                     projectSnapshot.NumDaysRemaining = 0;
                     if (dtDueDate > DateTime.Today && dtDueDate < DateTime.MaxValue)
@@ -1734,19 +1922,21 @@ namespace WebApiAzure
             {
                 ProjectSnapshotInfo projectSnapshot = new ProjectSnapshotInfo();
 
-                string strSQL = "SELECT Projects.ProjectID, Projects.StatusID, Projects.RankID, Projects.ProjectName, Projects.ProjectCode, Projects.ProjectDetails, " +
+                string strSQL = "SELECT Projects.ProjectID, Projects.StatusID, Projects.RankID, Projects.ProjectImageThumb, " +
+                    " Projects.ProjectName, Projects.ProjectCode, Projects.ProjectDetails, " +
                     " SUM(Tasks.RealTime) AS RealTimeTotal, ProjectGroups.ProjectGroupCode, " +
                     " Projects.DueDate, Projects.StartDate, " +
                     " Projects.EstimatedCompletionDate, Projects.EstimatedCompletionDateBasedOnLast30Days, Projects.HoursNeededToComplete, Projects.WorkPerDayNeededForDueDate," +
-                    " Projects.ProjectImgName " +
+                    " Projects.ProjectImgName, Projects.ProjectColor " +
                     " FROM Projects " +
                     " INNER JOIN ProjectGroups ON Projects.ProjectGroupID = ProjectGroups.ProjectGroupID " +
                     " LEFT OUTER JOIN Tasks ON Projects.ProjectID = Tasks.ProjectID " +
                     " WHERE Projects.ProjectID = " + projectID +
-                    " GROUP BY Projects.ProjectID, Projects.StatusID, Projects.RankID, Projects.ProjectName, Projects.ProjectCode, Projects.ProjectDetails, " +
+                    " GROUP BY Projects.ProjectID, Projects.StatusID, Projects.RankID, Projects.ProjectImageThumb, " + 
+                    " Projects.ProjectName, Projects.ProjectCode, Projects.ProjectDetails, " +
                     " ProjectGroups.ProjectGroupCode, Projects.DueDate, Projects.StartDate, " +
                     " Projects.EstimatedCompletionDate, Projects.EstimatedCompletionDateBasedOnLast30Days, Projects.HoursNeededToComplete, Projects.WorkPerDayNeededForDueDate, " +
-                    " Projects.ProjectImgName";
+                    " Projects.ProjectImgName, Projects.ProjectColor";
                 DataTable dt = RunExecuteReader(strSQL);
 
                 if (dt.Rows.Count == 1)
@@ -1771,16 +1961,20 @@ namespace WebApiAzure
                     if (dr["EstimatedCompletionDateBasedOnLast30Days"] != DBNull.Value)
                         projectSnapshot.EstimatedCompletionDateBasedOnLast30Days = Convert.ToDateTime(dr["EstimatedCompletionDateBasedOnLast30Days"]);
                     projectSnapshot.ProjectImgName = Convert.ToString(dr["ProjectImgName"]);
+                    projectSnapshot.ProjectColor = Convert.ToString(dr["ProjectColor"]);
                     projectSnapshot.PercentCompleted = GetProjectPerformance(projectID);
                     projectSnapshot.HoursNeededToComplete = Convert.ToSingle(dr["HoursNeededToComplete"]);
                     projectSnapshot.WorkPerDayNeededForDueDate = Convert.ToSingle(dr["WorkPerDayNeededForDueDate"]);
+
+                    if (dr["ProjectImageThumb"] != DBNull.Value)
+                        projectSnapshot.ProjectImageThumb = Convert.ToString(dr["ProjectImageThumb"]);
 
                     projectSnapshot.NumDaysRemaining = 0;
                     if (dtDueDate > DateTime.Today)
                         projectSnapshot.NumDaysRemaining = (int)dtDueDate.Subtract(DateTime.Today).TotalDays;
                 }
 
-                List<WeekInfo> weeks = new List<WebApiAzure.WeekInfo>();
+                List<WeekInfo> weeks = new List<WeekInfo>();
                 weeks.Add(new WeekInfo(DateTime.Today));
                 weeks.Add(DTC.GetPreviousWeek(weeks[0]));
                 weeks.Add(DTC.GetPreviousWeek(weeks[1]));
@@ -1982,56 +2176,56 @@ namespace WebApiAzure
                     " ORDER BY TheOrder";
                 return GetProjects(strSQL);
             }
-            public static string DeleteProject(ProjectInfo project)
+            public static string DeleteProject(long projectID)
             {
                 string strSQL = "";
                 string tables = "";
 
                 strSQL = "SELECT * FROM Blocks " +
-                    " WHERE ProjectID = " + project.ID;
+                    " WHERE ProjectID = " + projectID;
                 DataTable dt = RunExecuteReader(strSQL);
                 foreach (DataRow dr in dt.Rows)
                     tables += "Blocks\n";
 
                 strSQL = "SELECT * FROM Tasks " +
-                    " WHERE ProjectID = " + project.ID;
+                    " WHERE ProjectID = " + projectID;
                 dt = RunExecuteReader(strSQL);
                 foreach (DataRow dr in dt.Rows)
                     tables += "Tasks\n";
 
                 strSQL = "SELECT * FROM TaskTemplateLog " +
-                    " WHERE ProjectID = " + project.ID;
+                    " WHERE ProjectID = " + projectID;
                 dt = RunExecuteReader(strSQL);
                 foreach (DataRow dr in dt.Rows)
                     tables += "Task Templates\n";
 
                 strSQL = "SELECT * FROM CoTasks " +
-                    " WHERE ProjectID = " + project.ID;
+                    " WHERE ProjectID = " + projectID;
                 dt = RunExecuteReader(strSQL);
                 foreach (DataRow dr in dt.Rows)
                     tables += "Co-Tasks\n";
 
                 strSQL = "SELECT * FROM IdeaGroups " +
-                    " WHERE ProjectID = " + project.ID;
+                    " WHERE ProjectID = " + projectID;
                 dt = RunExecuteReader(strSQL);
                 foreach (DataRow dr in dt.Rows)
                     tables += "Idea Groups\n";
 
                 strSQL = "SELECT * FROM Pragmas " +
-                    " WHERE ProjectID = " + project.ID;
+                    " WHERE ProjectID = " + projectID;
                 dt = RunExecuteReader(strSQL);
                 foreach (DataRow dr in dt.Rows)
                     tables += "Pragmas\n";
 
                 strSQL = "SELECT * FROM PragmaInstances " +
-                    " WHERE ProjectID = " + project.ID;
+                    " WHERE ProjectID = " + projectID;
                 dt = RunExecuteReader(strSQL);
                 foreach (DataRow dr in dt.Rows)
                     tables += "Pragma Instances\n";
 
                 if (tables == "")
                 {
-                    strSQL = "DELETE Projects WHERE ProjectID = " + project.ID;
+                    strSQL = "DELETE Projects WHERE ProjectID = " + projectID;
                     RunNonQuery(strSQL);
                 }
                 
@@ -2509,7 +2703,7 @@ namespace WebApiAzure
                 float daysSpent = (float)DateTime.Today.Subtract(project.StartDate).TotalDays;
 
                 float percentComplete = 0;
-                List<ClusterInfo> clusters = Clusters.GetClusters(projectID, true);
+                List<ClusterInfo> clusters = Clusters.GetClustersOfProject(projectID, true);
                 foreach(ClusterInfo cluster in clusters)
                     percentComplete += cluster.Contribution;
 
@@ -2528,7 +2722,7 @@ namespace WebApiAzure
 
                 float completionRate = 0;
                 float hoursNeededToComplete = 0;
-                List<ClusterInfo> clusters = Clusters.GetClusters(projectID, true);
+                List<ClusterInfo> clusters = Clusters.GetClustersOfProject(projectID, true);
                 foreach (ClusterInfo cluster in clusters)
                 {
                     completionRate += cluster.Contribution;
@@ -2606,6 +2800,15 @@ namespace WebApiAzure
 
                 return data;
             }
+            public static bool UpdateLatestBlockD(long projectID, long latestBlockD)
+            {
+                string strSQL = "UPDATE Projects SET " +
+                    " LatestBlockID = " + latestBlockD +
+                    " WHERE ProjectID = " + projectID;
+                RunNonQuery(strSQL);
+
+                return true;
+            }
         }
 
         public class Clusters
@@ -2638,7 +2841,7 @@ namespace WebApiAzure
 
                 return info;
             }
-            public static List<ClusterInfo> GetClusters(int subProjectID, bool computeAllParameters)
+            public static List<ClusterInfo> GetClustersOfSubProject(int subProjectID, bool computeAllParameters)
             {
                 List<ClusterInfo> data = new List<ClusterInfo>();
 
@@ -2784,7 +2987,7 @@ namespace WebApiAzure
 
         public class SubProjects
         {
-            public static SubProjectInfo GetSubProject(DataRow dr)
+            private static SubProjectInfo GetSubProject(DataRow dr)
             {
                 SubProjectInfo info = new SubProjectInfo();
 
@@ -2922,6 +3125,61 @@ namespace WebApiAzure
 
                 return isOK;
             }
+            public static SubProjectPerformanceInfo GetSubProjectPerformance(long subProjectID)
+            {
+                SubProjectPerformanceInfo info = new SubProjectPerformanceInfo();
+
+                string strSQL = "SELECT SUM(Tasks.RealTime) AS TotalMinutes, " +
+                    " Clusters.ClusterID, Clusters.ClusterTitle, Clusters.HoursNeeded, Clusters.IsCompleted " +
+                    " FROM SubProjects " +
+                    " INNER JOIN Clusters ON SubProjects.SubProjectID = Clusters.SubProjectID " +
+                    " LEFT OUTER JOIN Tasks " +
+                    " INNER JOIN Blocks ON Tasks.BlockID = Blocks.BlockID ON Clusters.ClusterID = Blocks.ClusterID " +
+                    " WHERE SubProjects.SubProjectID = " + subProjectID +
+                    " GROUP BY Clusters.ClusterID, Clusters.ClusterTitle, Clusters.HoursNeeded, Clusters.IsCompleted " +
+                    " ORDER BY Clusters.ClusterTitle";
+                DataTable dt = RunExecuteReader(strSQL);
+
+                foreach (DataRow dr in dt.Rows)
+                {
+                    info.NumClustersTotal++;
+                    if (Convert.ToBoolean(dr["IsCompleted"]))
+                        info.NumClustersCompleted++;
+                    info.HoursNeeded += Convert.ToSingle(dr["HoursNeeded"]);
+
+                    float hoursSpent = 0;
+                    if(dr["TotalMinutes"] != DBNull.Value)
+                    {
+                        hoursSpent = Convert.ToSingle(dr["TotalMinutes"]) / 60f;
+                    }
+                    
+                    info.HoursSpentInRealLife += hoursSpent;
+                    if (hoursSpent > info.HoursNeeded)
+                        hoursSpent = info.HoursNeeded;
+                    info.HoursSpent+=  hoursSpent;
+                }
+
+                info.PercentageCompleted = 100f * info.HoursSpent / info.HoursNeeded;
+
+                /*
+                strSQL = "SELECT Tasks.BlockID, Tasks.RealTime, Blocks.Title, Clusters.ClusterID, Clusters.ClusterTitle, " +
+                    " SubProjects.SubProjectID, SubProjects.SubProjectName" + 
+                    " FROM Tasks " +
+                    " INNER JOIN Blocks ON Tasks.BlockID = Blocks.BlockID " + 
+                    " INNER JOIN Clusters ON Blocks.ClusterID = Clusters.ClusterID " +
+                    " INNER JOIN SubProjects ON Clusters.SubProjectID = SubProjects.SubProjectID " +
+                    " WHERE SubProjects.SubProjectID = " + subProjectID;
+                dt = RunExecuteReader(strSQL);
+                foreach (DataRow dr in dt.Rows)
+                {
+                    info.HoursSpentInRealLife+= Convert.ToSingle(dr["RealTime"]) / 60f;
+                }
+                */
+
+
+                return info;
+            }
+
         }
 
         public class Blocks
@@ -3097,6 +3355,24 @@ namespace WebApiAzure
 
                 return data;
             }
+            public static List<BlockInfo> GetBlocksCompleted(long projectID, int numBlocks)
+            {
+                List<BlockInfo> data = new List<BlockInfo>();
+
+                string strSQL = "SELECT TOP " + numBlocks + " Blocks.*, Goals.GoalID" +
+                    " FROM Blocks " +
+                    " LEFT OUTER JOIN Goals ON Blocks.BlockID = Goals.ItemID" +
+                    " AND Goals.GoalTypeID = " + (int)GoalTypeInfo.TypeEnum.Block +
+                    " AND Goals.StatusID = " + (int)DTC.StatusEnum.Running +
+                    " WHERE Blocks.StatusID = " + (int)DTC.StatusEnum.Success +
+                    " AND Blocks.ProjectID = " + projectID +
+                    " ORDER BY Blocks.EndDate DESC";
+                DataTable dt = RunExecuteReader(strSQL);
+                foreach (DataRow dr in dt.Rows)
+                    data.Add(GetBlockWithGoal(dr));
+
+                return data;
+            }
             public static List<BlockInfo> GetBlocksDue(DateTime startDate, int dueDaysForward)
             {
                 List<BlockInfo> data = new List<BlockInfo>();
@@ -3165,7 +3441,28 @@ namespace WebApiAzure
 
                 return block.ID;
             }
-            
+            public static bool CompleteTheBlock(long blockID)
+            {
+                bool result = true;
+
+                List<SegmentInfo> segments  = GetSegments(blockID);
+                if(segments.Exists(q => q.Status == DTC.StatusEnum.Running))
+                {
+                    result = false;
+                }
+                else
+                {
+                    result = true;
+
+                    BlockInfo block = GetBlock(blockID);
+                    block.Status = DTC.StatusEnum.Success;
+                    block.EndDate = DateTime.Today;
+                    
+                    AddUpdateBlock(block);
+                }
+
+                return result;
+            }
             public static bool DeleteBlock(long blockID)
             {
                 bool isOK = true;
@@ -3302,6 +3599,24 @@ namespace WebApiAzure
 
                 return data;
             }
+            public static List<BlockInfo> GetBlocksFromStringSplit(string strBlocks)
+            {
+                List<BlockInfo> data = new List<BlockInfo>();
+                List<string> blockIDs = DTC.SplitInto(strBlocks, '|');
+                string sqlBlocks = " WHERE BlockID = 0 ";
+                
+                foreach(string blockID in blockIDs)
+                {
+                    sqlBlocks += " OR BlockID = " + blockID;
+                }
+                   
+                string strSQL = "SELECT * FROM Blocks " + sqlBlocks;
+                DataTable dt = RunExecuteReader(strSQL);
+                foreach (DataRow dr in dt.Rows)
+                    data.Add(Blocks.GetBlock(dr));
+
+                return data;
+            }
         }
          
         public class Segments
@@ -3366,8 +3681,8 @@ namespace WebApiAzure
                 if (dr["Details"] != DBNull.Value) info.Details = Convert.ToString(dr["Details"]);
                 info.Status = (DTC.StatusEnum)Convert.ToInt32(dr["StatusID"]);
                 info.Size = (DTC.SizeEnum)Convert.ToInt32(dr["Size"]);
-                info.Order = Convert.ToInt32(dr["TheOrder"]);
-                info.ChapterID = Convert.ToInt32(dr["ChapterID"]);
+                if (dr["TheOrder"] != DBNull.Value) info.Order = Convert.ToInt32(dr["TheOrder"]);
+                if (dr["ChapterID"] != DBNull.Value) info.ChapterID = Convert.ToInt32(dr["ChapterID"]);
                 if (dr["ProjectCode"] != DBNull.Value) info.ProjectCode = Convert.ToString(dr["ProjectCode"]);
                 if (dr["GoalID"] != DBNull.Value) info.RunningGoalID = Convert.ToInt32(dr["GoalID"]);
 
@@ -3390,12 +3705,13 @@ namespace WebApiAzure
                 
                 return data;
             }
-            public static Dictionary<int, SegmentInfo> GetSegmentsCompleted(DateTime startDate, DateTime endDate, ProjectInfo project)
+            public static List<SegmentInfo> GetSegmentsCompleted(DateTime startDate, DateTime endDate, long projectID)
             {
-                Dictionary<int, SegmentInfo> dict = new Dictionary<int, SegmentInfo>();
+                List<SegmentInfo> data = new List<SegmentInfo>();
+
                 string strProject = string.Empty;
-                if (project != null)
-                    strProject = " AND Blocks.ProjectID = " + project.ID;
+                if (projectID > 0)
+                    strProject = " AND Blocks.ProjectID = " + projectID;
 
                 string strSQL = "SELECT Segments.*, Goals.GoalID " +
                     " FROM Segments " +
@@ -3411,12 +3727,29 @@ namespace WebApiAzure
                 DataTable dt = RunExecuteReader(strSQL);
                 foreach (DataRow dr in dt.Rows)
                 {
-                    int segmentID = Convert.ToInt32(dr["SegmentID"]);
-                    if (!dict.ContainsKey(segmentID))
-                        dict.Add(segmentID, GetSegment(dr));
+                    data.Add(GetSegment(dr));
                 }
 
-                return dict;
+                return data;
+            }
+            public static List<SegmentInfo> GetSegmentsCompleted(long projectID, int numSegments)
+            {
+                List<SegmentInfo> data = new List<SegmentInfo>();
+                
+                string strSQL = "SELECT TOP " +  numSegments + " Segments.*, Goals.GoalID " +
+                    " FROM Segments " +
+                    " INNER JOIN Blocks ON Segments.BlockID = Blocks.BlockID " +
+                    " LEFT OUTER JOIN Goals ON Segments.SegmentID = Goals.ItemID " +
+                    " AND Goals.GoalTypeID = " + (int)GoalTypeInfo.TypeEnum.Segment +
+                    " AND Goals.StatusID = " + (int)DTC.StatusEnum.Running +
+                    " WHERE Segments.StatusID = " + (int)DTC.StatusEnum.Success +
+                    " AND Blocks.ProjectID = " + projectID +
+                    " ORDER BY Segments.EndDate DESC";
+                DataTable dt = RunExecuteReader(strSQL);
+                foreach (DataRow dr in dt.Rows)
+                    data.Add(GetSegment(dr));
+
+                return data;
             }
             public static SegmentInfo GetSegment(long segmentID)
             {
@@ -4689,6 +5022,11 @@ namespace WebApiAzure
                         HoursPerUnit = 1,
                         PrimaryProjectID = block.ProjectID
                     };
+                    
+                    // For Segment type of goals we always create a Task
+                    TaskInfo task = DTC.SegmentsBlocksTasks.GetTaskFromSegment(segment, theDateOfTheDay);
+                    Tasks.AddUpdateTask(task);
+
                     return AddGoal(goal);
                 }
                 else
@@ -4723,6 +5061,53 @@ namespace WebApiAzure
                 {
                     return false;
                 }
+            }
+            public static bool CompleteGoal(long goalID)
+            {
+                GoalInfo goal = DB.Goals.GetGoal(goalID, true);
+                bool result = false;
+                
+                if (goal != null)
+                {
+                    if(goal.GoalType == GoalTypeInfo.TypeEnum.Segment)
+                    {
+                        SegmentInfo segment = DB.GetSegment(goal.ItemID);
+                        if (segment != null)
+                        {
+                            goal.EndDate = DateTime.Today;
+                            List<TaskInfo> tasks = Tasks.GetTasksOfSegment(segment.ID, TaskStatusEnum.Completed);
+                            if (tasks != null && tasks.Count > 0)
+                                goal.EndDate = tasks.First().TaskDate;
+
+                            segment.Status = DTC.StatusEnum.Success;
+                            segment.EndDate = goal.EndDate;
+                            DB.Segments.AddUpdateSegment(segment);
+
+                            result = true;
+                        }
+                        else
+                        {
+                            result = false;
+                        }
+                    }
+                    if(goal.GoalType == GoalTypeInfo.TypeEnum.Block)
+                    {
+                        // TODO: Burası için ayrı mekanizma yapıalcak
+                    }
+                    else
+                    {
+                        goal.EndDate = goal.DueDate;
+                        result = true;
+                    }
+
+                    if(result == true)
+                    {
+                        goal.Status = DTC.StatusEnum.Success;
+                        DB.Goals.UpdateGoal(goal);
+                    }
+                }
+
+                return result;
             }
             public static void UpdateGoal(GoalInfo goal)
             {
@@ -4904,6 +5289,26 @@ namespace WebApiAzure
 
                 return data;
             }
+            public static List<GoalInfo> GetGoalsOfSegments()
+            {
+                List<GoalInfo> data = new List<GoalInfo>();
+
+                DateTime dtEnd = DateTime.Today.AddDays(5);
+                DateTime dtStart = dtEnd.AddDays(-7);
+
+                string SQL = "SELECT *" +
+                    " FROM  Goals " +
+                    " WHERE GoalTypeID = " + (int)GoalTypeInfo.TypeEnum.Segment +
+                    " AND StatusID = " + (int)DTC.StatusEnum.Running +
+                    " AND DateStart >= " + DTC.ObtainGoodDT(dtStart, true) +
+                    " AND DateStart <= " + DTC.ObtainGoodDT(dtEnd, true);
+
+                DataTable dt = RunExecuteReader(SQL);
+                foreach (DataRow dr in dt.Rows)
+                    data.Add(GetGoal(dr, false));
+
+                return data;
+            }
             public static List<GoalInfo> GetGoalsOfSegments(int projectID, bool isOnlyRunningOnes, bool getPresentValues)
             {
                 List<GoalInfo> data = new List<GoalInfo>();
@@ -4920,6 +5325,23 @@ namespace WebApiAzure
                     strIsOnlyRunningOnes +
                     " AND Blocks.ProjectID = " + projectID;
                 foreach (GoalInfo g in GetGoals(SQL, getPresentValues))
+                    data.Add(g);
+
+                return data;
+            }
+            public static List<GoalInfo> GetGoalsOfSegments(DateTime dateStart, DateTime dateEnd)
+            {
+                List<GoalInfo> data = new List<GoalInfo>();
+                
+                string SQL = "SELECT Goals.*" +
+                    " FROM  Segments " +
+                    " INNER JOIN Goals ON Segments.SegmentID = Goals.ItemID" +
+                    " WHERE Goals.GoalTypeID = " + (int)GoalTypeInfo.TypeEnum.Segment +
+                    " AND Goals.StatusID = " + (int)DTC.StatusEnum.Running +
+                    " AND Goals.DateStart >= " + DTC.ObtainGoodDT(dateStart, true) +
+                    " AND Goals.DateEnd <= " + DTC.ObtainGoodDT(dateEnd, true); 
+
+                foreach (GoalInfo g in GetGoals(SQL, false))
                     data.Add(g);
 
                 return data;
@@ -5029,12 +5451,14 @@ namespace WebApiAzure
                 
                 return goal;
             }
-            public static void DeleteGoal(long goalID)
+            public static bool DeleteGoal(long goalID)
             {
                 string SQL;
 
                 SQL = "DELETE Goals WHERE GoalID = " + goalID;
                 RunNonQuery(SQL);
+
+                return true;
             }
 
             /// <summary>
@@ -5601,31 +6025,33 @@ namespace WebApiAzure
                     " WHERE GoalID = " + goalID;
                 RunNonQuery(strSQL);
             }
-            public static void PostponeToTheNextDay(long goalID)
+            public static void MoveToNextPrevDay(long goalID, int numDays)
             {
                 GoalInfo goal = GetGoal(goalID, false);
-                DateTime nextDayDate = goal.StartDate.AddDays(1);
-                DayInfo nextDay = DB.Days.GetDay(nextDayDate, true);
+                DateTime newDayDate = goal.StartDate.AddDays(numDays);
+                DayInfo newDay = DB.Days.GetDay(newDayDate, true);
 
-                goal.OwnerID = nextDay.DayID;
-                goal.StartDate = nextDayDate;
-                goal.EndDate = nextDayDate;
-                goal.DueDate = nextDayDate;
-
-                UpdateGoal(goal);
-            }
-            public static void BringToThePreviousDay(long goalID)
-            {
-                GoalInfo goal = GetGoal(goalID, false);
-                DateTime prevDayDate = goal.StartDate.AddDays(-1);
-                DayInfo pevDay = DB.Days.GetDay(prevDayDate, true);
-
-                goal.OwnerID = pevDay.DayID;
-                goal.StartDate = prevDayDate;
-                goal.EndDate = prevDayDate;
-                goal.DueDate = prevDayDate;
+                goal.OwnerID = newDay.DayID;
+                goal.StartDate = newDayDate;
+                goal.EndDate = newDayDate;
+                goal.DueDate = newDayDate;
 
                 UpdateGoal(goal);
+
+                if(goal.GoalType == GoalTypeInfo.TypeEnum.Segment)
+                {
+                    long segmentID = goal.ItemID;
+                    List<TaskInfo> tasks = Tasks.GetTasks("SELECT * FROM Tasks WHERE SegmentID = " + segmentID);
+                    foreach(TaskInfo task in tasks) 
+                    {
+                        task.TaskDate = newDayDate;
+                        task.StartDate = newDayDate;
+                        task.EndDate = newDayDate;
+
+                        Tasks.AddUpdateTask(task);
+                    }
+                }
+                
             }
         }
 
@@ -5766,6 +6192,13 @@ namespace WebApiAzure
                     owner.NO = year.Year;
                     owner.Label = year.Year.ToString();
                 }
+                return owner;
+            }
+            public static OwnerInfo GetOwner(long ownerID)
+            {
+                OwnerInfo owner = new OwnerInfo();
+
+           
                 return owner;
             }
             public static OwnerInfo GetOwner(DTC.RangeEnum range, DateTime date)
@@ -6040,6 +6473,21 @@ namespace WebApiAzure
                 string strSQL = "DELETE Books WHERE BookID = " + bookID;
                 RunNonQuery(strSQL);
             }
+            public static string ReReadBook(int bookID)
+            {
+                string result = string.Empty;
+
+                BookInfo book = GetBook(bookID);
+                book.ID = 0;
+                book.Status = DTC.StatusEnum.Running;
+                book.StartDate = DateTime.Today;
+                book.EndDate = DateTime.Today;
+                book.CurrentValue = 0;
+
+                AddUpdateBook(book);
+
+                return result;
+            }
         }
 
         public class News
@@ -6196,28 +6644,46 @@ namespace WebApiAzure
 
         public class Diary
         {
-            public static Dictionary<int, DiaryInfo> GetDiaries(DateTime startDate, DateTime endDate, DiaryInfo.NatureEnum nature)
+            public static List<DiaryInfo> GetDiaries(DateTime startDate, DateTime endDate, DiaryInfo.NatureEnum nature)
             {
                 string natureSQL = "";
 
                 if (nature != DiaryInfo.NatureEnum.NA)
                     natureSQL = " AND DiaryNature = " + (int)nature;
 
-                string SQL = "SELECT * FROM Diary" +
+                string SQL = "SELECT * FROM Diary " +
                     " WHERE DiaryDate >= " + DTC.Date.ObtainGoodDT(startDate, true) +
                     " AND DiaryDate <= " + DTC.Date.ObtainGoodDT(endDate, true) +
                     natureSQL +
                     " ORDER BY DiaryDate DESC";
                 return GetDiaries(SQL);
             }
-            public static Dictionary<int, DiaryInfo> GetDiaries(string strSQL)
+            public static List<DiaryInfo> GetDiariesOfProject(long projectID)
             {
-                Dictionary<int, DiaryInfo> dict = new Dictionary<int, DiaryInfo>();
+                string SQL = "SELECT * FROM Diary " +
+                    " WHERE DiaryNature = " + (int)DiaryInfo.NatureEnum.Project +
+                    " AND ObjectID = " + projectID +
+                    " ORDER BY DiaryDate DESC";
+                return GetDiaries(SQL);
+            }
+            public static DiaryInfo GetDiary(long diaryID)
+            {
+                DiaryInfo info = new DiaryInfo();
+                DataTable dt = RunExecuteReader("SELECT * FROM Diary WHERE DiaryID = " + diaryID);
+
+                if (dt.Rows.Count == 1)
+                    info = GetDiary(dt.Rows[0]);
+
+                return info;
+            }
+            private static List<DiaryInfo> GetDiaries(string strSQL)
+            {
+                List<DiaryInfo> data = new List<DiaryInfo>();
                 DataTable dt = RunExecuteReader(strSQL);
                 foreach (DataRow dr in dt.Rows)
-                    dict.Add(Convert.ToInt32(dr["DiaryID"]), GetDiary(dr));
+                    data.Add(GetDiary(dr));
 
-                return dict;
+                return data;
             }
             public static DiaryInfo GetDiary(DataRow dr)
             {
@@ -6232,14 +6698,14 @@ namespace WebApiAzure
 
                 return diary;
             }
-            public static int AddUpdateDiary(DiaryInfo diary)
+            public static long AddUpdateDiary(DiaryInfo diary)
             {
                 string SQL = "";
 
                 if (diary.ID == 0)
                 {
                     SQL = "INSERT INTO Diary " +
-                        " (DiaryTitle,DiaryBody,DiaryDate,DiaryNature,ObjectID" +
+                        " (DiaryTitle, DiaryBody, DiaryDate, DiaryNature, ObjectID" +
                         " ) VALUES (" +
                         "'" + DTC.Control.InputText(diary.Title, 255) + "'," +
                         "'" + DTC.Control.InputTextLight(diary.Body, 9999) + "'," +
@@ -6263,14 +6729,14 @@ namespace WebApiAzure
 
                 return diary.ID;
             }
-            public static bool DeleteDiary(DiaryInfo diary)
+            public static bool DeleteDiary(long diaryID)
             {
                 bool isOK = true;
                 string SQL = "";
 
                 if (isOK)
                 {
-                    SQL = "DELETE Diary WHERE DiaryID = " + diary.ID;
+                    SQL = "DELETE Diary WHERE DiaryID = " + diaryID;
                     RunNonQuery(SQL);
                 }
 
