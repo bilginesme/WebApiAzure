@@ -23,7 +23,7 @@ namespace WebApiAzure.Controllers
         {
             List<WeeklyPerformanceInfo> data = new List<WeeklyPerformanceInfo>();
 
-            List<Tuple<int, int, float>> dataRaw = DB.Projects.GetWeeklyAverageLogs(projectID, ntop);
+            List<Tuple<int, int, float>> dataRaw = DB.ProjectLogs.GetWeeklyAverageLogs(projectID, ntop);
 
             for(int i=0;i<dataRaw.Count;i++)
             {

@@ -26,6 +26,7 @@ namespace WebApiAzure.Models
         public float HoursNeededToComplete { get; set; }
         public DateTime EstimatedCompletionDate { get; set; }
         public DateTime EstimatedCompletionDateBasedOnLast30Days { get; set; }
+        public DateTime EstimatedCompletionDateBasedOnLast7Days { get; set; }
         public float WorkPerDayNeededForDueDate { get; set; }
         public float W0 { get; set; }
         public float W1 { get; set; }

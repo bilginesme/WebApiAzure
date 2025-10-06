@@ -11,8 +11,8 @@ namespace WebApiAzure.Controllers
     public class GoalsSuggestionsController : ApiController
     {
         [HttpGet]
-        [Route("api/GoalsSuggestions/{rangeID}/{numItems}/{isIncludeBetweenLimitGoals}")]
-        public IEnumerable<GoalInfo> Get(int rangeID, int numItems, bool isIncludeBetweenLimitGoals)
+        [Route("api/GoalsSuggestions/{rangeID}/{numItems}/{isIncludeBetweenLimitGoals}/{standartOrProjected}")]
+        public IEnumerable<GoalInfo> Get(int rangeID, int numItems, bool isIncludeBetweenLimitGoals, int standartOrProjected)
         {
             DTC.RangeEnum range = (DTC.RangeEnum)rangeID;
             OwnerInfo owner = DB.Owner.GetOwner(range, DateTime.Today);
@@ -23,13 +23,20 @@ namespace WebApiAzure.Controllers
             DayInfo today = DB.Days.GetDay(DateTime.Today, true);
             GoalsEngine goalEngine = new GoalsEngine(goalsAll, goalGroups, today);
 
+            GoalsEngine.PerformanceNatureEnum perfornanceMode = GoalsEngine.PerformanceNatureEnum.Worst;
+            if(standartOrProjected == 2)
+            {
+                perfornanceMode = GoalsEngine.PerformanceNatureEnum.Normal;
+            }
+                
             if (!isIncludeBetweenLimitGoals)
                 goalsAll = goalsAll.FindAll(i=>i.Nature == GoalInfo.NatureEnum.Standart);
 
             foreach(GoalInfo goal in goalsAll)
             {
-                goal.Contribution = goalEngine.GetGoalContributionWeighted(goal, false, GoalsEngine.PerformanceNatureEnum.Worst);
+                goal.Contribution = goalEngine.GetGoalContributionWeighted(goal, false, perfornanceMode);
                 goal.ContributionMax = goalEngine.GetGoalContributionWeighted(goal, true, GoalsEngine.PerformanceNatureEnum.Worst);
+                goal.DesiredValue = goal.GetDesiredValue(today);
             }
 
             int nCount = 0;

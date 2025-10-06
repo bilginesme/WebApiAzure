@@ -66,6 +66,11 @@ namespace WebApiAzure.Controllers
         [Route("api/Days/{dayID}")]
         public bool Put(int dayID, [FromBody]DayInfo value)
         {
+            if(value == null)
+            {
+
+            }
+
             value.StartInstance = TimeZoneInfo.ConvertTimeFromUtc(value.StartInstance, TimeZoneInfo.FindSystemTimeZoneById("Turkey Standard Time"));
             value.EndInstance = TimeZoneInfo.ConvertTimeFromUtc(value.EndInstance, TimeZoneInfo.FindSystemTimeZoneById("Turkey Standard Time"));
 
@@ -79,6 +84,13 @@ namespace WebApiAzure.Controllers
             {
                 return true;
             }
+        }
+
+        [HttpPut]
+        [Route("api/Days/{dayID}/{numMinutesSpare}")]
+        public bool Put(int dayID, int numMinutesSpare, [FromBody] DayInfo value)
+        {
+            return DB.Days.UpdateNumMinutesSpare(dayID, numMinutesSpare);
         }
 
         [HttpDelete]

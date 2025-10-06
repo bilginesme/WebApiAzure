@@ -18,11 +18,12 @@ namespace WebApiAzure.Controllers
         }
 
         [HttpGet]
-        [Route("api/Goals/{ownerID}/{param1}/{param2}/{param3}")]
-        public IEnumerable<GoalInfo> Get(long ownerID, string param1, string param2, string param3)
+        [Route("api/Goals/{ownerID}/{param1}/{param2}/{param3}/{param4}/{param5}")]
+        public IEnumerable<GoalInfo> Get(long ownerID, string param1, string param2, string param3, string param4, string param5)
         {
             OwnerInfo owner = null;
             List<GoalInfo> goals = new List<GoalInfo>();
+            int standartOrProjected = Convert.ToInt32(param4);  // 1 - standart, 2 - projected
 
             if (param1.ToUpper() == "GOALSOFGROUP")
             {
@@ -37,9 +38,7 @@ namespace WebApiAzure.Controllers
                 goals = DB.Goals.GetGoals(owner, true);
             }
 
-           
             DayInfo today = DB.Days.GetDay(DateTime.Today, true);
-            int standartOrProjected = 1;
             foreach (GoalInfo goal in goals)
             {
                 if (standartOrProjected == 1)
@@ -55,7 +54,6 @@ namespace WebApiAzure.Controllers
             }
 
             goals = goals.OrderByDescending(i => i.PresentPercentage).ToList();
-
 
             return goals;
         }

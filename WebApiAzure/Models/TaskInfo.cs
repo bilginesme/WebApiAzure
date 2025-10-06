@@ -23,6 +23,7 @@ namespace WebApiAzure.Models
         public string Details { get; set; }
         public int PlannedTime { get; set; }
         public int RealTime { get; set; }
+        public int NumMinutesSpare { get; set; }
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
         public DateTime TaskDate { get; set; }
@@ -54,6 +55,7 @@ namespace WebApiAzure.Models
             Details = string.Empty;
             PlannedTime = 0;
             RealTime = 0;
+            NumMinutesSpare = 0;
             OrderActive = 0;
             OrderGeneral = 0;
             IsFloating = false;

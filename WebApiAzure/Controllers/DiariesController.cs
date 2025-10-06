@@ -56,6 +56,22 @@ namespace WebApiAzure.Controllers
         }
 
         [HttpGet]
+        [Route("api/Diaries/{parameter1}/{parameter2}/{parameter3}/{parameter4}")]
+        public IEnumerable<DiaryInfo> Get(int parameter1, string parameter2, string parameter3, string parameter4)
+        {
+            List<DiaryInfo> data = new List<DiaryInfo>();
+
+            if(parameter1 == 1)
+            {
+                string strProjectIDs = parameter2;
+                data = DB.Diary.GetLatestDiariesOfProjects(strProjectIDs);
+
+            }
+     
+            return data;
+        }
+
+        [HttpGet]
         [Route("api/Diaries/{id}")]
         public DiaryInfo Get(int id)
         {

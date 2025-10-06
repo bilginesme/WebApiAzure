@@ -18,6 +18,7 @@ namespace WebApiAzure
         bool hasDue;
         DTC.SizeEnum size;
         DTC.StatusEnum status;
+        string tag;
         int order;
         int numTodosAll, numTodosComplete;
         int chapterID;
@@ -38,6 +39,7 @@ namespace WebApiAzure
             blockID = 0;
             size = DTC.SizeEnum.Medium;
             status = DTC.StatusEnum.Running;
+            tag = string.Empty;
             order = 0;
             numTodosAll = numTodosComplete = 0;
             chapterID = 0;
@@ -121,6 +123,7 @@ namespace WebApiAzure
         public bool HasDue { get { return hasDue; } set { hasDue = value; }}
         public DTC.SizeEnum Size { get { return size; } set { size = value; }}
         public DTC.StatusEnum Status { get { return status; } set { status = value; }}
+        public string Tag { get { return tag; } set { tag = value; } }
         public int Order { get { return order; } set { order = value; }}
         public int NumTodosAll { get { return numTodosAll; } set { numTodosAll = value; }}
         public int NumTodosComplete { get { return numTodosComplete; } set { numTodosComplete = value; }}

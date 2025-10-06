@@ -252,6 +252,9 @@
     <Compile Include="Controllers\AccountController.cs" />
     <Compile Include="Controllers\ActionableProjectsController.cs" />
     <Compile Include="Controllers\DiariesController.cs" />
+    <Compile Include="Controllers\CoTasksController.cs" />
+    <Compile Include="Controllers\ProjectGroupReportsController.cs" />
+    <Compile Include="Controllers\ProjectLogsController.cs" />
     <Compile Include="Controllers\SegmentGoalsOfBlockController.cs" />
     <Compile Include="Controllers\GoalsOfSegmentsController.cs" />
     <Compile Include="Controllers\IdeasController.cs" />
@@ -299,11 +302,13 @@
     <Compile Include="Models\AccountViewModels.cs" />
     <Compile Include="Models\BlockEnhancedInfo.cs" />
     <Compile Include="Models\BlockPerfInfo.cs" />
+    <Compile Include="Models\ProjectGroupReportInfo.cs" />
     <Compile Include="Models\ProjectMonitorItemInfo.cs" />
     <Compile Include="Models\ReportItemInfo.cs" />
     <Compile Include="Models\GenericItemInfo.cs" />
     <Compile Include="Models\SubProjectPerformanceInfo.cs" />
     <Compile Include="Models\SubProjectInfo.cs" />
+    <Compile Include="Models\ProjectLogInfo.cs" />
     <Compile Include="Models\WeeklyPerformanceInfo.cs" />
     <Compile Include="Models\BookInfo.cs" />
     <Compile Include="Models\BookProcessInfo.cs" />

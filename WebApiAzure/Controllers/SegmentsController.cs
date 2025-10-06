@@ -55,7 +55,7 @@ namespace WebApiAzure.Controllers
         [Route("api/Segments/{segmentID}")]
         public SegmentInfo Get(long segmentID)
         {
-            return DB.GetSegment(segmentID);
+            return DB.Segments.GetSegment(segmentID);
         }
          
         [HttpPost]

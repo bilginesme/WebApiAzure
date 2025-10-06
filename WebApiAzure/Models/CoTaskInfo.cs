@@ -8,7 +8,7 @@ namespace WebApiAzure.Models
     public class CoTaskInfo
     {
         #region Private Members
-        long coTaskID;
+        long id;
         long taskID;
         string title;
         int projectGroupID;
@@ -18,32 +18,32 @@ namespace WebApiAzure.Models
         #region Constructors
         public CoTaskInfo()
         {
-            coTaskID = 0;
+            id = 0;
             taskID = 0;
             title = "";
             projectID = 0;
         }
         public CoTaskInfo(CoTaskInfo tCoTask)
         {
-            coTaskID = tCoTask.CoTaskID;
+            id = tCoTask.ID;
             taskID = tCoTask.TaskID;
             title = tCoTask.Title;
             projectID = tCoTask.ProjectID;
         }
         public CoTaskInfo(int coTaskID, string title)
         {
-            this.coTaskID = coTaskID;
+            this.id = coTaskID;
             this.title = title;
         }
         #endregion
-
+         
         #region Public Methods
         
         #endregion
 
         #region Public Properties
         public long TaskID { get { return taskID; } set { taskID = value; } }
-        public long CoTaskID { get { return coTaskID; } set { coTaskID = value; }}
+        public long ID { get { return id; } set { id = value; }}
         public string Title { get { return title; } set { title = value; }}
         public int ProjectID { get { return projectID; } set { projectID = value; } }
         public int ProjectGroupID { get { return projectGroupID; } set { projectGroupID = value; } }

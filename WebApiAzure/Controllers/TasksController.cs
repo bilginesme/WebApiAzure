@@ -1,11 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Web;
 using System.Web.Http;
 using System.Web.UI.WebControls;
 using WebApiAzure.Models;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace WebApiAzure.Controllers
 {
@@ -65,6 +68,23 @@ namespace WebApiAzure.Controllers
                 DateTime theDate = DTC.Date.GetDateFromString(parameter3, DTC.Date.DateStyleEnum.Universal);
                 tasks = DB.Tasks.CreateTasksWithTemplate(taskTemplateID, theDate);
             }
+            else if (parameter1 == 4)
+            {
+                int segmentID = Convert.ToInt32(parameter2);
+                bool isOnlyRunning = Convert.ToBoolean(parameter3);
+
+                DB.TaskStatusEnum taskStatus = DB.TaskStatusEnum.All;
+                if (isOnlyRunning)
+                    taskStatus = DB.TaskStatusEnum.Running;
+                tasks = DB.Tasks.GetTasksOfSegment(segmentID, taskStatus);
+            }
+            else if(parameter1 == 5)
+            {
+                string title = Convert.ToString(parameter2).Trim();
+                string safeTitle = title.Replace("'", "''");
+
+                tasks = DB.Tasks.GetTasksWithTitle(safeTitle);
+            }
 
             return tasks;
         }
@@ -83,9 +103,9 @@ namespace WebApiAzure.Controllers
 
         [HttpPost]
         [Route("api/Tasks/")]
-        public void Post([FromBody]TaskInfo task)
+        public long Post([FromBody]TaskInfo task)
         {
-            DB.Tasks.AddUpdateTask(task);
+            return DB.Tasks.AddUpdateTask(task);
         }
 
         [HttpPut]

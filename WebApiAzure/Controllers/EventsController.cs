@@ -50,6 +50,20 @@ namespace WebApiAzure.Controllers
                 DateTime theDate = DTC.Date.GetDateFromString(param2, DTC.Date.DateStyleEnum.Universal);
                 events = DB.News.GetTheDayInHistory(theDate);
             }
+            else if (param1 == "2")
+            {
+                DateTime theDate = DTC.Date.GetDateFromString(param2, DTC.Date.DateStyleEnum.Universal);
+                theDate = theDate.AddYears(-1);
+                WeekInfo week = DB.Weeks.GetWeek(theDate, false);
+                events = DB.News.GetNews(week.StartDate, week.EndDate);
+            }
+            else if (param1 == "3")
+            {
+                DateTime theDate = DTC.Date.GetDateFromString(param2, DTC.Date.DateStyleEnum.Universal);
+                theDate = new DateTime(theDate.Year - 1, theDate.Month, 1);
+                MonthInfo month = DB.Months.GetMonth(theDate, false);
+                events = DB.News.GetNews(month.StartDate, month.EndDate);
+            }
 
             return events;
         }
@@ -109,20 +123,25 @@ namespace WebApiAzure.Controllers
       
         [HttpPost]
         [Route("api/Events/")]
-        public void Post([FromBody]NewsInfo value)
+        public long Post([FromBody]NewsInfo value)
         {
+            value.Date = TimeZoneInfo.ConvertTimeFromUtc(value.Date, TimeZoneInfo.FindSystemTimeZoneById("Turkey Standard Time"));
+            return DB.News.AddUpdateNews(value);
         }
 
         [HttpPut]
         [Route("api/Events/{eventID}")]
-        public void Put(int eventID, [FromBody]DayInfo value)
+        public long Put(int eventID, [FromBody]NewsInfo value)
         {
+            value.Date = TimeZoneInfo.ConvertTimeFromUtc(value.Date, TimeZoneInfo.FindSystemTimeZoneById("Turkey Standard Time"));
+            return DB.News.AddUpdateNews(value);
         }
 
         [HttpDelete]
         [Route("api/Events/{eventID}")]
-        public void Delete(int eventID)
+        public bool Delete(int eventID)
         {
+            return DB.News.DeleteNews(eventID);
         }
     }
 }

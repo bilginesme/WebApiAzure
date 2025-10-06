@@ -19,6 +19,7 @@ namespace WebApiAzure.Models
         string diary;
         int performance;
         int perfWeek, perfMonth, perfQuarter, perfYear, perfDecade, perfLife;
+        int numMinutesSpare;
         #endregion
 
         #region Constructors
@@ -36,6 +37,7 @@ namespace WebApiAzure.Models
             diary = "";
             performance = 0;
             perfWeek = 0; perfMonth = 0; perfQuarter = 0; perfYear = 0; perfDecade = 0; perfLife = 0;
+            numMinutesSpare = 0;
         }
         public DayInfo()
         {
@@ -51,6 +53,7 @@ namespace WebApiAzure.Models
             diary = "";
             performance = 0;
             perfWeek = 0; perfMonth = 0; perfQuarter = 0; perfYear = 0; perfDecade = 0; perfLife = 0;
+            numMinutesSpare = 0;
         }
         #endregion
 
@@ -150,6 +153,7 @@ namespace WebApiAzure.Models
         public int PerfYear { get { return perfYear; } set { perfYear = value; }}
         public int PerfDecade { get { return perfDecade; } set { perfDecade = value; }}
         public int PerfLife { get { return perfLife; } set { perfLife = value; }}
+        public int NumMinutesSpare { get { return numMinutesSpare; } set { numMinutesSpare = value; } }
         #endregion
     }
 }
